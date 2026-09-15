@@ -1,7 +1,8 @@
 'use strict';
 
 const TICK_MS = 200;
-const MAX_SECONDS = 99 * 3600 + 59 * 60 + 59; // 入力欄が表せる上限 99:59:59
+const MAX_MINUTES = 999;
+const MAX_SECONDS = MAX_MINUTES * 60 + 59; // 入力欄が表せる上限 999:59
 const THEME_KEY = 'timer-theme';
 const IDLE_MS = 2500;      // 操作が途切れてから UI を隠すまで
 const FIT_WIDTH = 0.92;    // 数字が使ってよい画面幅の割合
@@ -14,7 +15,6 @@ const el = {
   display: document.getElementById('display'),
   runStatus: document.getElementById('runStatus'),
   progress: document.getElementById('progress'),
-  hours: document.getElementById('hours'),
   minutes: document.getElementById('minutes'),
   seconds: document.getElementById('seconds'),
   presets: document.getElementById('presets'),
@@ -44,13 +44,13 @@ let lastTextLength = -1;
 
 // ---- 時間の整形 ----
 
+// 時の桁は持たない。60 分を超えたぶんは 70:00 のように分をそのまま増やして表す
 function formatTime(ms) {
   const total = Math.max(0, Math.ceil(ms / 1000));
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
+  const m = Math.floor(total / 60);
   const s = total % 60;
   const pad = (n) => String(n).padStart(2, '0');
-  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+  return `${pad(m)}:${pad(s)}`;
 }
 
 function currentRemaining() {
@@ -76,7 +76,8 @@ function render() {
   const remaining = currentRemaining();
   const text = formatTime(remaining);
 
-  el.display.textContent = text;
+  // コロンだけ span で包み、CSS で視覚的な中心まで持ち上げる
+  el.display.innerHTML = text.replace(/:/g, '<span class="display__colon">:</span>');
   if (text.length !== lastTextLength) {
     lastTextLength = text.length;
     fitDisplay(); // 桁数が変わったときだけ測り直す
@@ -85,9 +86,9 @@ function render() {
   const ratio = state.durationMs > 0 ? remaining / state.durationMs : 0;
   el.progress.style.transform = `scaleX(${ratio})`;
 
-  if (state.running) document.title = `${text} - タイマー`;
-  else if (state.finished) document.title = '終了 - タイマー';
-  else document.title = 'タイマー';
+  if (state.running) document.title = `${text} - Timer`;
+  else if (state.finished) document.title = 'Done - Timer';
+  else document.title = 'Timer';
 }
 
 function setRunStatus(text) {
@@ -132,21 +133,25 @@ function clamp(value, min, max) {
 
 function inputMs() {
   return (
-    clamp(el.hours.value, 0, 99) * 3600000 +
-    clamp(el.minutes.value, 0, 59) * 60000 +
+    clamp(el.minutes.value, 0, MAX_MINUTES) * 60000 +
     clamp(el.seconds.value, 0, 59) * 1000
   );
 }
 
-// 大きな数字を構成する 3 つの入力欄。左から桁上位の順に並べる
+// 大きな数字を構成する 2 つの入力欄。分は 3 桁まで受け、60 分以上もそのまま持つ
 const SEGMENTS = [
-  { input: el.hours, max: 99 },
-  { input: el.minutes, max: 59 },
-  { input: el.seconds, max: 59 },
+  { input: el.minutes, max: MAX_MINUTES, digits: 3 },
+  { input: el.seconds, max: 59, digits: 2 },
 ];
+
+// 桁数を CSS に渡し、入力欄の幅を中身に合わせる (2 桁未満でも 2 桁分は確保する)
+function syncSegmentWidth(input) {
+  input.style.setProperty('--seg-digits', Math.max(2, input.value.length));
+}
 
 function setSegment(input, n) {
   input.value = String(n).padStart(2, '0');
+  syncSegmentWidth(input);
 }
 
 function normalizeSegment({ input, max }) {
@@ -158,8 +163,7 @@ function addSeconds(delta) {
 }
 
 function fillInputs(totalSeconds) {
-  setSegment(el.hours, Math.floor(totalSeconds / 3600));
-  setSegment(el.minutes, Math.floor((totalSeconds % 3600) / 60));
+  setSegment(el.minutes, Math.floor(totalSeconds / 60));
   setSegment(el.seconds, totalSeconds % 60);
 }
 
@@ -223,8 +227,8 @@ function playAlarm() {
 function notifyFinished() {
   if (!el.notifyToggle.checked) return;
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
-  new Notification('タイマー終了', {
-    body: `${formatTime(state.durationMs)} が経過しました。`,
+  new Notification('Timer finished', {
+    body: `${formatTime(state.durationMs)} has elapsed.`,
     tag: 'timer',
   });
 }
@@ -237,7 +241,7 @@ function startCounting() {
   state.finished = false;
 
   el.runScreen.classList.remove('is-paused', 'is-finished');
-  setPrimaryLabel('一時停止');
+  setPrimaryLabel('Pause');
   setRunStatus(''); // 通常進行中はラベルを出さず、数字だけを見せる
 
   clearInterval(tickId);
@@ -247,7 +251,7 @@ function startCounting() {
 }
 
 function resetSetupHint() {
-  el.setupHint.innerHTML = '<kbd>Enter</kbd> で開始';
+  el.setupHint.innerHTML = '<kbd>Enter</kbd> to start';
 }
 
 function clearInputs() {
@@ -258,7 +262,7 @@ function clearInputs() {
 function startFromSetup() {
   const ms = inputMs();
   if (ms <= 0) {
-    el.setupHint.textContent = '1 秒以上を設定してください';
+    el.setupHint.textContent = 'Set at least 1 second';
     return;
   }
   resetSetupHint();
@@ -278,7 +282,7 @@ function pause() {
   tickId = null;
 
   el.runScreen.classList.add('is-paused');
-  setPrimaryLabel('再開');
+  setPrimaryLabel('Resume');
   setRunStatus(''); // 一時停止はぼかしと再生アイコンで示す
   revealControls();
   render();
@@ -298,8 +302,8 @@ function finish() {
 
   el.runScreen.classList.remove('is-paused');
   el.runScreen.classList.add('is-finished');
-  setPrimaryLabel('もう一度');
-  setRunStatus('終了');
+  setPrimaryLabel('Restart');
+  setRunStatus('Done');
   revealControls();
   render();
 
@@ -361,20 +365,20 @@ el.presets.addEventListener('click', (event) => {
   addSeconds(Number(chip.dataset.add));
 });
 
-SEGMENTS.forEach((seg, index) => {
-  const { input, max } = seg;
-  const next = SEGMENTS[index + 1];
+SEGMENTS.forEach((seg) => {
+  const { input, max, digits: maxDigits } = seg;
 
   // クリックしただけで桁ごと選択され、そのまま上書き入力できる
   input.addEventListener('focus', () => input.select());
   input.addEventListener('pointerup', (event) => event.preventDefault());
 
+  // 分は 3 桁まで伸びるので、桁が埋まっても次の欄へは送らない
+  // (送ると 0500 と打ったときに 050 で確定してしまう)。移動は Tab / クリックで行う
   input.addEventListener('input', () => {
-    const digits = input.value.replace(/\D/g, '').slice(0, 2);
-    input.value = digits;
-    if (digits.length < 2) return;
-    if (Number(digits) > max) setSegment(input, max);
-    if (next) next.input.focus(); // 2 桁埋まったら次の桁へ送る
+    const typed = input.value.replace(/\D/g, '').slice(0, maxDigits);
+    input.value = typed;
+    syncSegmentWidth(input);
+    if (typed.length === maxDigits && Number(typed) > max) setSegment(input, max);
   });
 
   input.addEventListener('keydown', (event) => {
@@ -406,13 +410,13 @@ el.notifyToggle.addEventListener('change', async () => {
   if (!el.notifyToggle.checked) return;
   if (!('Notification' in window)) {
     el.notifyToggle.checked = false;
-    el.setupHint.textContent = 'このブラウザは通知に対応していません';
+    el.setupHint.textContent = 'This browser does not support notifications';
     return;
   }
   if (Notification.permission === 'default') await Notification.requestPermission();
   if (Notification.permission !== 'granted') {
     el.notifyToggle.checked = false;
-    el.setupHint.textContent = '通知が許可されませんでした';
+    el.setupHint.textContent = 'Notification permission was denied';
   }
 });
 

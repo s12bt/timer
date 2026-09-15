@@ -140,15 +140,9 @@ body:has(.run-screen.is-idle) .theme-switch {
   line-height: 1;
 }
 
-.seg-group {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-
 .seg {
-  width: calc(2ch + 24px);
+  /* 分は 3 桁まで伸びる。桁数は JS が --seg-digits で渡す */
+  width: calc(var(--seg-digits, 2) * 1ch + 24px);
   padding: 6px 12px;
   border: 0;
   border-radius: 14px;
@@ -176,18 +170,15 @@ body:has(.run-screen.is-idle) .theme-switch {
   box-shadow: none;
 }
 
-.seg-label {
-  font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
-  font-size: 11px;
-  font-weight: 400;
-  letter-spacing: 0.08em;
-  color: var(--text-dim);
-}
-
+/* 細いドット 2 つは太い数字に挟まれると沈んで見えるので、少し持ち上げて視覚的な中心を合わせる。
+   フォントの幾何中心は数字と一致しているため、これは錯視に対する視覚補正。効き方が画面で違うので
+   持ち上げ量は 2 画面それぞれで持つ (カウントダウン画面は .display__colon 側で指定)。
+   position: relative なら幅・高さは変わらず、カウントダウン画面の fitDisplay() の採寸にも影響しない */
 .colon {
+  position: relative;
+  top: -0.015em;
   padding: 6px 2px;
   line-height: 1;
-  color: var(--text-dim);
 }
 
 .presets {
@@ -261,6 +252,14 @@ body:has(.run-screen.is-idle) .theme-switch {
   transform-origin: center center;
   will-change: transform;
   transition: filter 0.25s ease, opacity 0.25s ease;
+}
+
+/* こちらは scale() で大きく拡大されるぶん錯視が強く出るので、設定画面より深く持ち上げる。
+   margin は .display の letter-spacing (負値) でコロンの両隣が詰まるぶんを開け直すもの */
+.display__colon {
+  position: relative;
+  top: -0.11em;
+  margin: 0 0.08em;
 }
 
 /* 一時停止中: 数字をぼかして、中央の再生アイコンに視線を渡す */
