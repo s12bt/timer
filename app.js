@@ -7,6 +7,7 @@ const THEME_KEY = 'timer-theme';
 const IDLE_MS = 2500;      // 操作が途切れてから UI を隠すまで
 const FIT_WIDTH = 0.92;    // 数字が使ってよい画面幅の割合
 const FIT_HEIGHT = 0.72;   // 同 高さ
+const UI_GAP = 12;         // 数字と下部の操作 UI の間に最低限空ける距離
 
 const el = {
   setupScreen: document.getElementById('setupScreen'),
@@ -22,6 +23,7 @@ const el = {
   clearBtn: document.getElementById('clearBtn'),
   primaryBtn: document.getElementById('primaryBtn'),
   pauseOverlay: document.getElementById('pauseOverlay'),
+  runUi: document.getElementById('runUi'),
   runHintAction: document.getElementById('runHintAction'),
   backBtn: document.getElementById('backBtn'),
   setupHint: document.getElementById('setupHint'),
@@ -65,9 +67,16 @@ function fitDisplay() {
   el.display.style.transform = 'scale(1)';
   const rect = el.display.getBoundingClientRect();
   if (!rect.width || !rect.height) return;
+  // 数字は上下中央に置くので、下部の操作 UI が占める高さを上下両側から差し引く。
+  // 横向きのスマホのように高さが低い画面で、数字とボタンが重ならないようにするため
+  const uiReserve = window.innerHeight - el.runUi.getBoundingClientRect().top + UI_GAP;
+  const maxHeight = Math.min(
+    window.innerHeight * FIT_HEIGHT,
+    window.innerHeight - uiReserve * 2
+  );
   const scale = Math.min(
     (window.innerWidth * FIT_WIDTH) / rect.width,
-    (window.innerHeight * FIT_HEIGHT) / rect.height
+    maxHeight / rect.height
   );
   el.display.style.transform = `scale(${scale})`;
 }

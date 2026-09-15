@@ -39,9 +39,15 @@
 
 [hidden] { display: none !important; }
 
+html {
+  -webkit-text-size-adjust: 100%; /* iOS Safari が横向きで文字を勝手に拡大するのを止める */
+}
+
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh; /* モバイルでアドレスバーの分だけはみ出さないように */
+  touch-action: manipulation; /* 連続タップ (+30s を何度も押す等) でダブルタップズームが起きないように */
   background: var(--bg);
   color: var(--text);
   font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
@@ -105,6 +111,7 @@ body:has(.run-screen.is-idle) .theme-switch {
 
 .setup-screen {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -430,4 +437,43 @@ kbd {
   background: var(--surface);
   font-family: inherit;
   font-size: 11px;
+}
+
+/* ============ タッチ端末 ============ */
+
+/* キーボード前提のショートカット案内はタッチ端末では出さない。
+   設定画面のヒント欄はエラー文言の表示にも使うので、kbd を含むときだけ隠す */
+@media (hover: none) and (pointer: coarse) {
+  .hint:has(kbd) { display: none; }
+}
+
+/* ============ 高さの低い横長画面 (スマホの横向き) ============ */
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .theme-switch {
+    top: 12px;
+    right: 12px;
+  }
+
+  .setup-screen {
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .setup { gap: 16px; }
+
+  .btn--large {
+    padding: 14px 40px;
+    font-size: 17px;
+  }
+
+  /* 操作 UI を 1 行にまとめて、数字に使える高さを稼ぐ */
+  .run-ui {
+    bottom: 16px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .run-status:empty { display: none; }
 }
