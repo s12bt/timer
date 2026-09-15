@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Timers</title>
+  <script>
+    // 各タイマーと同じキーでテーマを読み、描画前に確定させる
+    try {
+      var saved = localStorage.getItem('timer-theme');
+      document.documentElement.dataset.theme =
+        saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    } catch (e) {}
+  </script>
+  <style>
+    /* 色とフォントは各タイマー (countdown/style.css) と同じ値を使う */
+    :root,
+    :root[data-theme="light"] {
+      --bg: #f4f6fb;
+      --surface: #ffffff;
+      --border: #dfe4ee;
+      --text: #131a2b;
+      --text-dim: #6b7690;
+      --accent: #2f5fe0;
+    }
+
+    :root[data-theme="dark"] {
+      --bg: #0e1320;
+      --surface: #161d2e;
+      --border: #26304a;
+      --text: #e8ecf5;
+      --text-dim: #8b96ae;
+      --accent: #5b8cff;
+    }
+
+    :root {
+      --font-display: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { -webkit-text-size-adjust: 100%; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100dvh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 72px 24px 48px;
+    }
+
+    .page__title {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .page__lead {
+      margin: 8px 0 0;
+      font-size: 14px;
+      color: var(--text-dim);
+    }
+
+    .timers {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+      margin: 40px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .timer-card {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      height: 100%;
+      padding: 22px 22px 20px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--surface);
+      color: inherit;
+      text-decoration: none;
+      transition: border-color 0.15s ease;
+    }
+
+    .timer-card:hover { border-color: var(--accent); }
+
+    .timer-card:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* タイマーの見た目をそのまま縮めた飾り。読み上げは下の名前と説明に任せる */
+    .timer-card__face {
+      font-family: var(--font-display);
+      font-size: 44px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+
+    /* タイマー本体と同じく、細いコロンを視覚的な中心まで少し持ち上げる */
+    .timer-card__colon {
+      position: relative;
+      top: -0.04em;
+      margin: 0 0.04em;
+    }
+
+    .timer-card__name {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .timer-card__desc {
+      margin: 6px 0 0;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-dim);
+    }
+
+    @media (max-width: 480px) {
+      .page { padding-top: 48px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1 class="page__title">Timers</h1>
+    <p class="page__lead">A collection of timers that run in your browser.</p>
+
+    <!-- タイマーを追加したら、ここに li を 1 つ足す -->
+    <ul class="timers">
+      <li>
+        <a class="timer-card" href="countdown/">
+          <span class="timer-card__face" aria-hidden="true">05<span class="timer-card__colon">:</span>00</span>
+          <div>
+            <h2 class="timer-card__name">Countdown</h2>
+            <p class="timer-card__desc">Set minutes and seconds, then count down to zero with an alarm.</p>
+          </div>
+        </a>
+      </li>
+    </ul>
+  </main>
+</body>
+</html>
