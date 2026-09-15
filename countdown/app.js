@@ -3,7 +3,7 @@
 const TICK_MS = 200;
 const MAX_MINUTES = 999;
 const MAX_SECONDS = MAX_MINUTES * 60 + 59; // 入力欄が表せる上限 999:59
-const THEME_KEY = 'timer-theme';
+const THEME_KEY = 'timer:countdown:theme'; // localStorage はドメイン全体で共有されるので、タイマー専用のキーにする
 const IDLE_MS = 2500;      // 操作が途切れてから UI を隠すまで
 const FIT_WIDTH = 0.92;    // 数字が使ってよい画面幅の割合
 const FIT_HEIGHT = 0.72;   // 同 高さ

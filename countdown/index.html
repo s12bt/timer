@@ -6,9 +6,9 @@
   <title>Timer</title>
   <link rel="stylesheet" href="style.css">
   <script>
-    // 描画前にテーマを確定させ、初回のちらつきを防ぐ
+    // 描画前にテーマを確定させ、初回のちらつきを防ぐ。キーは app.js の THEME_KEY と揃える
     try {
-      var saved = localStorage.getItem('timer-theme');
+      var saved = localStorage.getItem('timer:countdown:theme');
       document.documentElement.dataset.theme =
         saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     } catch (e) {}

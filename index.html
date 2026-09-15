@@ -4,33 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Timers</title>
-  <script>
-    // 各タイマーと同じキーでテーマを読み、描画前に確定させる
-    try {
-      var saved = localStorage.getItem('timer-theme');
-      document.documentElement.dataset.theme =
-        saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    } catch (e) {}
-  </script>
   <style>
-    /* 色とフォントは各タイマー (countdown/style.css) と同じ値を使う */
-    :root,
-    :root[data-theme="light"] {
+    /* 一覧はテーマを持たず、ライト表示だけにする (テーマの有無は各タイマーに任せる)。
+       色とフォントは countdown/style.css のライトテーマと同じ値を使う */
+    :root {
+      color-scheme: light;
       --bg: #f4f6fb;
       --surface: #ffffff;
       --border: #dfe4ee;
       --text: #131a2b;
       --text-dim: #6b7690;
       --accent: #2f5fe0;
-    }
-
-    :root[data-theme="dark"] {
-      --bg: #0e1320;
-      --surface: #161d2e;
-      --border: #26304a;
-      --text: #e8ecf5;
-      --text-dim: #8b96ae;
-      --accent: #5b8cff;
     }
 
     :root {
