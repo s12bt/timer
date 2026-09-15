@@ -439,6 +439,36 @@ kbd {
   font-size: 11px;
 }
 
+/* 設定画面の下の案内。Enter の案内と URL 指定の説明を 1 まとまりとして詰めて並べる */
+.hints {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 例ごとに折り返さないまとまりにして、狭い画面では例の単位で次の行へ送る */
+.url-tip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px 12px;
+  line-height: 1.8;
+}
+
+.url-tip > span { white-space: nowrap; }
+
+/* 設定画面の案内は装飾せず、周りの文章と同じ見た目にする。
+   kbd は「タッチ端末では隠す」判定 (.hint:has(kbd)) に使うので、要素は残して見た目だけ打ち消す */
+.hints kbd,
+.hints code {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+
 /* ============ タッチ端末 ============ */
 
 /* キーボード前提のショートカット案内はタッチ端末では出さない。
@@ -476,4 +506,7 @@ kbd {
   }
 
   .run-status:empty { display: none; }
+
+  /* 高さに余裕がないので、URL 指定の説明は省く */
+  .url-tip { display: none; }
 }

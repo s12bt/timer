@@ -176,6 +176,16 @@ function fillInputs(totalSeconds) {
   setSegment(el.seconds, totalSeconds % 60);
 }
 
+// URL の ?t= で初期時間を受け取る。m5 で 5 分、s30 で 30 秒、m5s30 で 5 分 30 秒。
+// s90 のように 60 秒以上なら分へ繰り上げる。形式が違う値や 0 秒は無視して null を返す
+function timeFromQuery() {
+  const t = new URLSearchParams(window.location.search).get('t');
+  const match = t && /^(?:m(\d+))?(?:s(\d+))?$/i.exec(t);
+  if (!match) return null;
+  const total = Number(match[1] || 0) * 60 + Number(match[2] || 0);
+  return total > 0 ? Math.min(total, MAX_SECONDS) : null;
+}
+
 // ---- テーマ ----
 
 const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -467,4 +477,6 @@ document.addEventListener('keydown', (event) => {
 
 applyTheme(storedTheme() || (darkQuery.matches ? 'dark' : 'light'));
 SEGMENTS.forEach(normalizeSegment);
+const queryTime = timeFromQuery();
+if (queryTime) fillInputs(queryTime);
 render();
