@@ -21,6 +21,9 @@
   --text-dim: rgba(63, 58, 51, 0.38);
   --line: rgba(63, 58, 51, 0.16);
   --ring: rgba(63, 58, 51, 0.58); /* 残り時間の弧。細い線なので --line より濃い */
+  /* 下部の操作の重みで視覚的な中心が下がって見えるぶん、円と数字を持ち上げる。
+     円の下に置く一行も同じ量だけ動かすこと (画面中心を基準に位置を計算しているため) */
+  --lift: 30px;
   --line-faint: rgba(63, 58, 51, 0.05);
   --font-display: Manrope, "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", system-ui, sans-serif;
@@ -43,6 +46,23 @@ body {
   touch-action: manipulation;
 }
 
+/* 画面の隅にごく薄い陰を落として、中央へ視線を集める。
+   inset の box-shadow でも試したが、影の内縁が角丸の輪郭として見えてしまうため却下。
+   楕円のグラデーションは縦横比の偏った画面だと左右が深く沈むが、境目が出ないことを優先した。
+   全面に重なるので pointer-events: none で操作を透過させること */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(63, 58, 51, 0) 55%,
+    rgba(63, 58, 51, 0.05) 100%
+  );
+}
+
 .zen {
   position: relative;
   min-height: 100vh;
@@ -59,6 +79,7 @@ body {
 /* 数字・円・波紋はすべてこの正方形の中心に重なる */
 .stage {
   position: relative;
+  top: calc(-1 * var(--lift));
   width: min(66vmin, 460px);
   aspect-ratio: 1;
   display: grid;
@@ -135,12 +156,6 @@ body {
   animation: ripple 9s linear forwards;
 }
 
-/* 終了の一滴はゆっくり、遠くまで */
-.ripple--final {
-  animation-name: ripple-final;
-  animation-duration: 16s;
-}
-
 /* 一時停止は「水面が止まる」ことで示す。飛んでいる波紋もその場で凍らせ、再開で続きから動かす */
 .zen.is-paused .ripple { animation-play-state: paused; }
 
@@ -152,12 +167,6 @@ body {
   from { transform: scale(1); opacity: 0; filter: blur(0.4px); }
   15%  { opacity: 1; }
   to   { transform: scale(3.6); opacity: 0; filter: blur(5px); }
-}
-
-@keyframes ripple-final {
-  from { transform: scale(1); opacity: 0; filter: blur(0.4px); }
-  12%  { opacity: 1; }
-  to   { transform: scale(5); opacity: 0; filter: blur(6px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -210,13 +219,13 @@ body {
   left: 0;
   right: 0;
   /* stage の半径 min(33vmin, 230px) のぶん中心から下げる */
-  top: calc(50% + min(33vmin, 230px) + 30px);
+  top: calc(50% + min(33vmin, 230px) + 30px - var(--lift));
   margin: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  font-size: 11px;
+  gap: 20px;
+  font-size: 14px;
   letter-spacing: 0.14em;
   color: var(--text-dim);
   opacity: 0;
@@ -227,22 +236,29 @@ body {
 .zen.has-whisper .whisper { opacity: 1; }
 
 /* 一時停止中の出口。パネルには戻さず、この一行の中に一語だけ置く */
+/* 設定画面の Reset (.chip.chip--quiet) と同じ作り。枠線は hover のときだけ現れる */
 .whisper__reset {
   display: none;
-  padding: 0;
-  border: 0;
+  padding: 6px 14px;
+  border: 1px solid transparent;
+  border-radius: 999px;
   background: transparent;
   color: inherit;
-  font: inherit;
-  letter-spacing: inherit;
+  font-family: inherit;
+  font-size: 14px;
+  letter-spacing: 0.04em;
   cursor: pointer;
   pointer-events: auto; /* 行自体は透過させ、この一語だけ押せるようにする */
-  transition: color 0.2s ease;
+  transition: color 0.2s ease, border-color 0.2s ease;
 }
 
-.zen.is-paused .whisper__reset { display: inline; }
+/* 表示の切り替えは JS が行う。.is-paused で切ると、再開時に文字のフェードを待たず瞬時に消える */
+.whisper.has-reset .whisper__reset { display: inline-block; }
 
-.whisper__reset:hover { color: var(--text); }
+.whisper__reset:hover {
+  color: var(--text);
+  border-color: var(--line);
+}
 
 /* ============ 操作 ============ */
 
@@ -280,7 +296,7 @@ body {
   background: transparent;
   color: var(--text-dim);
   font-family: inherit;
-  font-size: 12px;
+  font-size: 14px;
   letter-spacing: 0.04em;
   cursor: pointer;
   transition: color 0.2s ease, border-color 0.2s ease;
@@ -302,7 +318,7 @@ body {
   background: var(--text);
   color: var(--bg);
   font-family: inherit;
-  font-size: 12px;
+  font-size: 14px;
   letter-spacing: 0.24em;
   text-transform: uppercase;
   cursor: pointer;
@@ -322,7 +338,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text-dim);
   cursor: pointer;
 }
@@ -332,7 +348,7 @@ body {
 .hint {
   margin: 0;
   min-height: 1em;
-  font-size: 11px;
+  font-size: 14px;
   letter-spacing: 0.06em;
   color: var(--text-dim);
 }

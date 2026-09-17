@@ -5,6 +5,8 @@ const MAX_MINUTES = 999;
 const MAX_SECONDS = MAX_MINUTES * 60 + 59;
 const SOUND_KEY = 'timer:zen:sound'; // localStorage はドメイン全体で共有されるので、このタイマー専用のキーにする
 const DROP_MS = 15000; // 水滴の間隔。残り時間には連動させない (連動させると滴の数を数えられてしまう)
+// 円の下の一行が消えるまでの時間。style.css の .whisper の transition と揃えること
+const WHISPER_FADE_MS = 800;
 
 const el = {
   zen: document.getElementById('zen'),
@@ -36,6 +38,7 @@ let tickId = null;
 let setupMs = 0; // 設定画面で組み立て中の時間
 let lastDropIndex = 0; // 残りが下りきった格子の番号。開始位置は resetDropGrid() で済んだ扱いにする
 let teachId = null;
+let whisperClearId = null;
 let audioCtx = null;
 
 const RING_LENGTH = 2 * Math.PI * el.ringLine.r.baseVal.value;
@@ -79,9 +82,21 @@ function render() {
 }
 
 // 円の下の一行。常設の操作を置かずに、必要な場面だけ言葉を出す
-function whisper(text) {
-  el.whisperText.textContent = text;
-  el.zen.classList.toggle('has-whisper', Boolean(text));
+function whisper(text, withReset) {
+  clearTimeout(whisperClearId);
+  if (text) {
+    el.whisperText.textContent = text;
+    el.whisper.classList.toggle('has-reset', Boolean(withReset));
+    el.zen.classList.add('has-whisper');
+    return;
+  }
+  // 文言は残したまま薄れさせ、消えきってから空にする。
+  // 同時に空にすると、フェードする対象が無くなって一瞬で消えたように見える
+  el.zen.classList.remove('has-whisper');
+  whisperClearId = setTimeout(() => {
+    el.whisperText.textContent = '';
+    el.whisper.classList.remove('has-reset');
+  }, WHISPER_FADE_MS);
 }
 
 function resetHint() {
@@ -91,18 +106,17 @@ function resetHint() {
 // ---- 水滴 ----
 
 // 1 滴につき複数の輪を少しずつ遅らせて出す。実際の水面と同じく、1 滴は 1 本の輪では終わらない
-function drop(final) {
-  const rings = final ? 4 : 3;
-  const base = final ? 16 : 9; // 先頭の輪の所要時間。CSS の既定値をここで上書きする
-  for (let i = 0; i < rings; i++) {
+// 波紋は 1 種類。形も速さも共通で、濃さだけ呼び出し側で弱められる (strength)
+function drop(strength = 1) {
+  for (let i = 0; i < 3; i++) {
     const ring = document.createElement('span');
-    ring.className = final ? 'ripple ripple--final' : 'ripple';
+    ring.className = 'ripple';
     // 輪の間隔は「速度 × 遅延」で決まる。速度を変えたら遅延も同じ比率で割り、間隔の見え方を保つ
     ring.style.animationDelay = (i * 0.95) + 's';
     // 進む距離は同じで時間だけを変えることで、先頭の輪が一番速く、後ろほど遅くなる。
     // 実際の水面と同じく、輪と輪の間隔は時間とともに開いていく
-    ring.style.animationDuration = (base + i * (final ? 3.5 : 2.2)) + 's';
-    ring.style.setProperty('--a', String((final ? 0.11 : 0.08) * (1 - i * 0.2)));
+    ring.style.animationDuration = (9 + i * 2.2) + 's';
+    ring.style.setProperty('--a', String(0.08 * strength * (1 - i * 0.2)));
     ring.addEventListener('animationend', () => ring.remove());
     el.ripples.appendChild(ring);
   }
@@ -182,16 +196,17 @@ function ensureAudio() {
   return audioCtx;
 }
 
-// 低い基音に倍音を重ね、長く減衰させて鈴に寄せる (countdown の 880Hz 三連はこの画面には硬すぎる)
+// ラ (A3 = 220Hz) を基音に、1:2:3 の倍音を重ねて長く減衰させ、鈴に寄せる
+// (countdown の 880Hz 三連はこの画面には硬すぎる)
 function playBell() {
   if (!state.soundOn) return;
   const ctx = ensureAudio();
   if (!ctx) return;
   const at = ctx.currentTime + 0.05;
   const partials = [
-    { freq: 262, gain: 0.20, decay: 6.0 },
-    { freq: 524, gain: 0.10, decay: 4.2 },
-    { freq: 786, gain: 0.045, decay: 2.8 },
+    { freq: 220, gain: 0.20, decay: 6.0 },
+    { freq: 440, gain: 0.10, decay: 4.2 },
+    { freq: 660, gain: 0.045, decay: 2.8 },
   ];
   for (const { freq, gain: peak, decay } of partials) {
     const osc = ctx.createOscillator();
@@ -260,7 +275,7 @@ function pause() {
   tickId = null;
   clearTimeout(teachId);
   setPhase('paused');
-  whisper('Tap to resume');
+  whisper('Tap to resume', true);
   render();
 }
 
@@ -276,7 +291,7 @@ function finish() {
   setPhase('finished');
   whisper('');
   render();
-  drop(true); // 終わりの一滴
+  drop(); // 終わりの一滴
   playBell();
   notifyFinished();
   resetHint(); // 終わりは数字と最後の一滴が示す。文言は足さない
@@ -397,3 +412,8 @@ applySound(storedSound());
 const queryTime = timeFromQuery();
 if (queryTime) setupMs = queryTime * 1000;
 showTime(Math.round(setupMs / 1000));
+
+// 読み込み直後に一度だけ水面を動かす。画面が生きていることを言葉ではなく波紋で伝える。
+// 即時だと書体の読み込みと重なって演出に見えないので、少し置いてから落とす。
+// 設定の操作を邪魔しないよう、この一滴だけ濃さを半分にする
+setTimeout(() => drop(0.5), 500);
