@@ -67,15 +67,24 @@ function currentRemaining() {
 
 
 
-// 表示専用。分は 3 桁まで伸びる
+// 表示専用。分は 3 桁まで伸びる。題名にも同じ文字列を使うので組み立てた結果を返す
 function showTime(totalSeconds) {
-  el.minutes.textContent = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
-  el.seconds.textContent = String(totalSeconds % 60).padStart(2, '0');
+  const mm = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+  const ss = String(totalSeconds % 60).padStart(2, '0');
+  el.minutes.textContent = mm;
+  el.seconds.textContent = ss;
+  return mm + ':' + ss;
+}
+
+// 背面のタブでも残りが分かるように、走っている間だけ題名に出す。
+// 止まっているときに数字を貼り出すと、進んでいるのか止まっているのか区別がつかない
+function setTitle(text) {
+  document.title = state.running && text ? text + ' - Zen' : 'Zen';
 }
 
 function render() {
   const remaining = currentRemaining();
-  showTime(Math.ceil(remaining / 1000));
+  setTitle(showTime(Math.ceil(remaining / 1000)));
   // 残りが減るほど円周の線が短くなる
   const ratio = state.durationMs > 0 ? remaining / state.durationMs : 0;
   el.ringLine.style.strokeDashoffset = String(RING_LENGTH * (1 - ratio));
@@ -311,6 +320,7 @@ function toSetting() {
   whisper('');
   setupMs = state.durationMs;
   showTime(Math.round(state.durationMs / 1000));
+  setTitle();
   el.ringLine.style.strokeDashoffset = String(RING_LENGTH);
   resetHint();
 }
