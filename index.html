@@ -102,6 +102,13 @@
       margin: 0 0.04em;
     }
 
+    /* 静かなタイマーはカードの表情も軽くする */
+    .timer-card__face--zen {
+      font-weight: 300;
+      letter-spacing: 0.02em;
+      color: rgba(63, 58, 51, 0.55);
+    }
+
     .timer-card__name {
       margin: 0;
       font-size: 16px;
@@ -133,6 +140,15 @@
           <div>
             <h2 class="timer-card__name">Countdown</h2>
             <p class="timer-card__desc">Set minutes and seconds, then count down to zero with an alarm.</p>
+          </div>
+        </a>
+      </li>
+      <li>
+        <a class="timer-card" href="zen/">
+          <span class="timer-card__face timer-card__face--zen" aria-hidden="true">15<span class="timer-card__colon">:</span>00</span>
+          <div>
+            <h2 class="timer-card__name">Zen</h2>
+            <p class="timer-card__desc">A quiet timer for reflection. The ring recedes and a drop falls every ten seconds.</p>
           </div>
         </a>
       </li>

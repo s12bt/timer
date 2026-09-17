@@ -1,0 +1,350 @@
+/* 数字用の書体。どの環境でも同じ見た目にするため、Google Fonts の Manrope を自前で持つ。
+   必要なのは数字とコロンだけなので latin サブセットのみ。
+   ライセンスは SIL Open Font License 1.1 で、全文と著作権表示は fonts/OFL.txt に同梱している。
+   font-display: block — 静かな画面では、別の書体で一瞬出てから入れ替わるより、少し待って出る方がよい */
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 500;
+  font-display: block;
+  src: url('fonts/manrope-500-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* 振り返りのための静かなタイマー。
+   テーマは持たずライト固定にする (静けさが目的なので、切り替えという判断自体を画面に置かない)。
+   色は countdown の青寄りの白 (#f4f6fb) ではなく、少し温度のある白を使う */
+:root {
+  color-scheme: light;
+  --bg: #f7f6f3;
+  --text: rgba(63, 58, 51, 0.68);
+  --text-dim: rgba(63, 58, 51, 0.38);
+  --line: rgba(63, 58, 51, 0.16);
+  --ring: rgba(63, 58, 51, 0.58); /* 残り時間の弧。細い線なので --line より濃い */
+  --line-faint: rgba(63, 58, 51, 0.05);
+  --font-display: Manrope, "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+[hidden] { display: none !important; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  touch-action: manipulation;
+}
+
+.zen {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+/* 計測中は操作が画面から引くので、面のどこを押しても止められるようにする */
+.zen.is-running,
+.zen.is-paused { cursor: pointer; }
+
+/* 数字・円・波紋はすべてこの正方形の中心に重なる */
+.stage {
+  position: relative;
+  width: min(66vmin, 460px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+
+/* ============ 残り時間の円 ============ */
+
+/* 円はどの状態でも出したままにする。設定中は弧の長さがゼロなので通り道だけが見え、
+   開始すると無から現れるのではなく、もとからある円に弧が満ちる形になる */
+.ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg); /* 12 時の位置から始める */
+}
+
+/* 太さは溝と弧でそれぞれ持つ (共有の既定値を置いても双方が上書きするため意味を持たない) */
+.ring__track,
+.ring__line {
+  fill: none;
+  stroke-linecap: round;
+}
+
+/* 通り道は線で描かず、地と同じ色に光と影を添えて浅い溝に見せる (ごく弱いニューモフィズム)。
+   光は左上から当たる前提で、影を左上・光を右下へ。輪郭線ではなく陰影だけが形を伝える */
+.ring__track {
+  stroke: var(--bg);
+  stroke-width: 1.4;
+  filter:
+    drop-shadow(-1px -1px 1.5px rgba(63, 58, 51, 0.09))
+    drop-shadow(1px 1px 1.5px rgba(255, 255, 255, 0.9));
+}
+
+/* 残り時間はインクの線で描く。溝と同じ陰影表現も試したが、隆起と溝の差が知覚できる閾値に届かず却下 */
+.ring__line {
+  stroke: var(--ring);
+  /* 実寸で約 0.8px。この画面は等倍なので、これ以上細くしても鋭くはならず薄くなるだけ */
+  stroke-width: 0.35;
+  transition: stroke-dashoffset 0.2s linear;
+}
+
+/* ============ 水滴 ============ */
+
+.ripples {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* 輪郭を線で描かず濃度の帯で作る。参考画像と同じく、見ようとしないと見えない強さに留める。
+   1 滴につき複数の輪を少しずつ遅らせて出すと、水面らしい連なりになる */
+.ripple {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  /* 濃度の山は要素の半径の 70% の位置にある。タイマーの円は stage の半径の 47% (viewBox 200 に対して r=94)
+     なので、要素の半径を 0.47 / 0.7 = 0.671 にすると scale(1) で山がちょうど円周に重なる */
+  width: 134.3%;
+  aspect-ratio: 1;
+  margin: -67.15% 0 0 -67.15%;
+  border-radius: 50%;
+  /* closest-side が要る。既定の farthest-corner だと 100% が半径ではなく半対角線になり、
+     帯が √2 倍だけ外にずれてタイマーの円と重ならない */
+  background: radial-gradient(
+    circle closest-side,
+    rgba(63, 58, 51, 0) 69%,
+    rgba(63, 58, 51, var(--a, 0.08)) 70%,
+    rgba(63, 58, 51, 0) 71%
+  );
+  /* 等速で広がる。実際の水面と同じく、進む速さは変えず濃度だけが落ちていく。
+     前傾した easing だと円周で生まれる瞬間が見えないまま飛び出してしまう */
+  animation: ripple 9s linear forwards;
+}
+
+/* 終了の一滴はゆっくり、遠くまで */
+.ripple--final {
+  animation-name: ripple-final;
+  animation-duration: 16s;
+}
+
+/* 一時停止は「水面が止まる」ことで示す。飛んでいる波紋もその場で凍らせ、再開で続きから動かす */
+.zen.is-paused .ripple { animation-play-state: paused; }
+
+/* 円周の上で生まれて、外へ抜けていく。
+   生まれる瞬間は帯が一番凝縮していて濃く出るので、不透明度の山は外へ出てから迎えるようにする */
+@keyframes ripple {
+  /* フィルターは要素のローカル座標で効いてから拡大が乗る。値自体も動かすことで、
+     生まれた瞬間は実効 0.4px の締まった線、終点では約 18px 相当まで溶ける */
+  from { transform: scale(1); opacity: 0; filter: blur(0.4px); }
+  15%  { opacity: 1; }
+  to   { transform: scale(3.6); opacity: 0; filter: blur(5px); }
+}
+
+@keyframes ripple-final {
+  from { transform: scale(1); opacity: 0; filter: blur(0.4px); }
+  12%  { opacity: 1; }
+  to   { transform: scale(5); opacity: 0; filter: blur(6px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ripple { display: none; }
+}
+
+/* ============ 数字 ============ */
+
+.time {
+  position: relative;
+  display: flex;
+  align-items: center;
+  font-family: var(--font-display);
+  font-size: clamp(42px, 6.4vw, 62px);
+  font-weight: 500; /* Manrope の中庸。countdown の 700 より軽く、静けさを保ったまま芯を持たせる */
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  user-select: none;
+  /* 読みやすさはインクが担い、光と影は面につなぐ役だけを持つ。光源は円の溝と同じ左上。
+     ずらし幅とぼかしは字の大きさに見合わせた値で、ここを縮めると 62px の字に対して比率として消える。
+     陰影の強弱は色の濃さ側で調整すること */
+  color: rgba(63, 58, 51, 0.52);
+  text-shadow:
+    -1px -1px 2px rgba(63, 58, 51, 0.05),
+    2px 2px 3px rgba(255, 255, 255, 0.58);
+  transition: opacity 0.8s ease;
+}
+
+/* 表示専用の桁。入力欄ではなくなったので、幅計算もキャレットも focus 状態も要らない */
+.seg {
+  padding: 4px 8px;
+}
+
+/* この書体はコロンの点が数字より下に着く。canvas の字形計測では両者のインク中心の差は 0.114em だが、
+   見た目は 0.1em の持ち上げで揃う (計測値どおりだと上がりすぎる)。
+   position: relative なら幅・高さは変わらないので、数字の位置には影響しない */
+.colon {
+  position: relative;
+  top: -0.1em;
+  padding: 0 2px;
+}
+
+/* 止まっているあいだは数字も一段落とす。波紋が飛んでいない瞬間でも、計測中と見分けがつくように */
+.zen.is-paused .time { opacity: 0.55; }
+
+/* 円のすぐ外に置く一行。計測の始まりの案内と、一時停止中の合図だけに使う */
+.whisper {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* stage の半径 min(33vmin, 230px) のぶん中心から下げる */
+  top: calc(50% + min(33vmin, 230px) + 30px);
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--text-dim);
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  pointer-events: none;
+}
+
+.zen.has-whisper .whisper { opacity: 1; }
+
+/* 一時停止中の出口。パネルには戻さず、この一行の中に一語だけ置く */
+.whisper__reset {
+  display: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  pointer-events: auto; /* 行自体は透過させ、この一語だけ押せるようにする */
+  transition: color 0.2s ease;
+}
+
+.zen.is-paused .whisper__reset { display: inline; }
+
+.whisper__reset:hover { color: var(--text); }
+
+/* ============ 操作 ============ */
+
+.controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: clamp(28px, 7vh, 64px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  transition: opacity 0.9s ease;
+}
+
+/* 設定の操作を出すのは、時間を決める場面と終わったあとだけ。
+   一時停止でパネルが戻ると、そこで静けさが切れるので引いたままにする */
+.zen.is-running .controls,
+.zen.is-paused .controls {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.chip {
+  padding: 6px 14px;
+  border: 1px solid var(--line-faint);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.chip:hover {
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.chip--quiet { border-color: transparent; }
+
+/* 唯一の塗りつぶし要素。数字と同じ色で塗り、文字は地の色に抜く。
+   border は透明のまま残す (box-sizing: border-box なので、消すと寸法が 2px 縮む) */
+.begin {
+  padding: 14px 44px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--bg);
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.25s ease;
+}
+
+.begin:hover { background: rgba(63, 58, 51, 0.82); }
+
+.checks {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.check input { accent-color: rgba(63, 58, 51, 0.45); }
+
+.hint {
+  margin: 0;
+  min-height: 1em;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+kbd { font-family: inherit; }
+
+:focus-visible {
+  outline: 1px solid var(--line);
+  outline-offset: 3px;
+}
+
+/* キーボード前提の案内はタッチ端末では出さない (ヒント欄はエラー文言にも使うので kbd を含むときだけ) */
+@media (hover: none) and (pointer: coarse) {
+  .hint:has(kbd) { display: none; }
+}
