@@ -169,6 +169,8 @@ body::after {
   to   { transform: scale(3.6); opacity: 0; filter: blur(5px); }
 }
 
+/* 滴を作らない判断は app.js が持つ (display: none だけでは animationend が来ず span が溜まるため)。
+   ここは作られてしまった場合に備えた保険 */
 @media (prefers-reduced-motion: reduce) {
   .ripple { display: none; }
 }

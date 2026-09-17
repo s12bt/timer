@@ -114,9 +114,16 @@ function resetHint() {
 
 // ---- 水滴 ----
 
+// 判定は滴を作るたびに行う (OS 側の設定変更にその場で追従させるため)
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
 // 1 滴につき複数の輪を少しずつ遅らせて出す。実際の水面と同じく、1 滴は 1 本の輪では終わらない
 // 波紋は 1 種類。形も速さも共通で、濃さだけ呼び出し側で弱められる (strength)
 function drop(strength = 1) {
+  // 動きを減らす設定のときは、隠すのではなく作らない。
+  // display: none だと animation が始まらず、取り除く合図の animationend も来ないため span が溜まり続ける
+  if (reducedMotion.matches) return;
+
   for (let i = 0; i < 3; i++) {
     const ring = document.createElement('span');
     ring.className = 'ripple';
@@ -292,6 +299,9 @@ function finish() {
   state.running = false;
   state.finished = true;
   state.remainingMs = 0;
+  // 表示は 00:00 になるので、組み立て中の時間もそこへ揃える。
+  // 揃えないと、終わったあとに +30s を押したときに直前の長さへ 30 秒足した値が出る
+  setupMs = 0;
   clearInterval(tickId);
   tickId = null;
   resetDropGrid();
@@ -402,7 +412,7 @@ document.addEventListener('keydown', (event) => {
   }
 
   if (event.code === 'Space') {
-    if (target instanceof Element && target.matches('button')) return; // ネイティブのクリックに任せる
+    if (target instanceof Element && target.matches('button, input')) return; // ネイティブの操作に任せる (チェックボックスの切り替えを含む)
     if (phase() === 'setting') return;
     event.preventDefault();
     toggleRun();
