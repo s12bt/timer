@@ -5,21 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Timers</title>
   <style>
-    /* 一覧はテーマを持たず、ライト表示だけにする (テーマの有無は各タイマーに任せる)。
-       色とフォントは countdown/style.css のライトテーマと同じ値を使う */
+    /* 一覧の器は各タイマーから独立させる。テーマも持たず、地は白・インクは無彩色・書体はシステムのもの。
+       ただし右の数字だけは各タイマーの見本として、本体の書体とスタイルをそのまま出す (下の「数字」を参照) */
     :root {
       color-scheme: light;
-      --bg: #f4f6fb;
-      --surface: #ffffff;
-      --border: #dfe4ee;
-      --text: #131a2b;
-      --text-dim: #6b7690;
-      --accent: #2f5fe0;
+      --text: #1a1a1a;
+      --text-dim: #6b6b6b;
+      --line: rgba(0, 0, 0, 0.14);
+      --line-faint: rgba(0, 0, 0, 0.08);
     }
 
-    :root {
-      --font-display: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-        "Helvetica Neue", system-ui, sans-serif;
+    /* zen の数字用。実体は zen が自前配信しているものをそのまま読む (一覧 → zen の依存はこの 1 箇所だけ)。
+       ライセンスは SIL Open Font License 1.1 で、全文と著作権表示は zen/fonts/OFL.txt にある。
+       font-display は zen (block) と変えて swap にする。一覧は待たせる画面ではないので、
+       まず出してから差し替える方がよい */
+    @font-face {
+      font-family: 'Manrope';
+      font-style: normal;
+      font-weight: 500;
+      font-display: swap;
+      src: url('zen/fonts/manrope-500-latin.woff2') format('woff2');
     }
 
     * { box-sizing: border-box; }
@@ -30,23 +35,23 @@
       margin: 0;
       min-height: 100vh;
       min-height: 100dvh;
-      background: var(--bg);
+      background: #ffffff;
       color: var(--text);
-      font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
       -webkit-font-smoothing: antialiased;
     }
 
     .page {
-      max-width: 760px;
+      max-width: 640px;
       margin: 0 auto;
       padding: 72px 24px 48px;
     }
 
     .page__title {
       margin: 0;
-      font-size: 28px;
-      font-weight: 700;
-      letter-spacing: -0.01em;
+      font-size: 26px;
+      font-weight: 600;
     }
 
     .page__lead {
@@ -55,68 +60,105 @@
       color: var(--text-dim);
     }
 
+    /* 面で区切らず、罫線で並べる */
     .timers {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 16px;
       margin: 40px 0 0;
       padding: 0;
       list-style: none;
+      border-top: 1px solid var(--line-faint);
     }
 
-    .timer-card {
+    .timer-row {
       display: flex;
-      flex-direction: column;
-      gap: 18px;
-      height: 100%;
-      padding: 22px 22px 20px;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      background: var(--surface);
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 24px 4px;
+      border-bottom: 1px solid var(--line-faint);
       color: inherit;
       text-decoration: none;
-      transition: border-color 0.15s ease;
     }
 
-    .timer-card:hover { border-color: var(--accent); }
-
-    .timer-card:focus-visible {
-      outline: 2px solid var(--accent);
-      outline-offset: 2px;
+    /* 地に色を敷かず、数字も各タイマーの色で固定したいので、hover はタイトルの下線だけで返す。
+       罫線は行を区切る役に徹させ、状態では動かさない。
+       キーボードで辿るときも同じ見え方になるよう :focus-visible にも同じ返しを付ける */
+    .timer-row:hover .timer-row__name,
+    .timer-row:focus-visible .timer-row__name {
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
     }
 
-    /* タイマーの見た目をそのまま縮めた飾り。読み上げは下の名前と説明に任せる */
-    .timer-card__face {
-      font-family: var(--font-display);
-      font-size: 44px;
-      font-weight: 700;
-      font-variant-numeric: tabular-nums;
-      letter-spacing: -0.02em;
-      line-height: 1;
+    .timer-row:focus-visible {
+      outline: 1px solid var(--line);
+      outline-offset: 3px;
     }
 
-    /* タイマー本体と同じく、細いコロンを視覚的な中心まで少し持ち上げる */
-    .timer-card__colon {
-      position: relative;
-      top: -0.04em;
-      margin: 0 0.04em;
-    }
+    .timer-row__body { min-width: 0; }
 
-    .timer-card__name {
+    .timer-row__name {
       margin: 0;
       font-size: 16px;
       font-weight: 600;
     }
 
-    .timer-card__desc {
+    .timer-row__desc {
       margin: 6px 0 0;
       font-size: 13px;
       line-height: 1.6;
       color: var(--text-dim);
     }
 
+    /* ============ 数字 ============ */
+
+    /* ここだけは各タイマーの顔を見せる場所。書体・太さ・字間・色は本体から写している。
+       写しなので、タイマー側の数字の見た目を変えたらこの修飾クラスも手で合わせること。
+       大きさだけは一覧の都合で揃える (本体はどちらも画面幅に追従する clamp を使っている)。
+       地の陰影は持ち込まない。zen の text-shadow は温白 (#f7f6f3) の上で光る作りなので、
+       白地のここでは光の側が効かず、影だけが汚れとして残る */
+    .timer-row__face {
+      flex: none;
+      font-size: 40px;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    /* countdown: SF Pro Display の Bold。Mac 以外は各 OS のシステムフォントの太字に落ちる */
+    .timer-row__face--countdown {
+      font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", system-ui, sans-serif;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #131a2b;
+    }
+
+    /* zen: Manrope の中庸。静けさを保ったまま芯を持たせる太さ */
+    .timer-row__face--zen {
+      font-family: Manrope, "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", system-ui, sans-serif;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      color: rgba(63, 58, 51, 0.52);
+    }
+
+    /* コロンを視覚的な中心まで持ち上げる量も書体ごとに違う。本体と同じ値を使う。
+       position: relative なら幅・高さは変わらないので、数字の位置には影響しない */
+    .timer-row__colon {
+      position: relative;
+      display: inline-block;
+    }
+
+    .timer-row__face--countdown .timer-row__colon { top: -0.015em; }
+
+    .timer-row__face--zen .timer-row__colon {
+      top: -0.1em;
+      padding: 0 2px;
+    }
+
     @media (max-width: 480px) {
       .page { padding-top: 48px; }
+      .timer-row { gap: 16px; padding: 20px 2px; }
+      .timer-row__face { font-size: 32px; }
     }
   </style>
 </head>
@@ -128,12 +170,21 @@
     <!-- タイマーを追加したら、ここに li を 1 つ足す -->
     <ul class="timers">
       <li>
-        <a class="timer-card" href="countdown/">
-          <span class="timer-card__face" aria-hidden="true">05<span class="timer-card__colon">:</span>00</span>
-          <div>
-            <h2 class="timer-card__name">Countdown</h2>
-            <p class="timer-card__desc">Set minutes and seconds, then count down to zero with an alarm.</p>
+        <a class="timer-row" href="countdown/">
+          <div class="timer-row__body">
+            <h2 class="timer-row__name">Countdown</h2>
+            <p class="timer-row__desc">Set minutes and seconds, then count down to zero with an alarm.</p>
           </div>
+          <span class="timer-row__face timer-row__face--countdown" aria-hidden="true">05<span class="timer-row__colon">:</span>00</span>
+        </a>
+      </li>
+      <li>
+        <a class="timer-row" href="zen/">
+          <div class="timer-row__body">
+            <h2 class="timer-row__name">Zen</h2>
+            <p class="timer-row__desc">A quiet timer for reflection. The ring recedes and a drop falls every fifteen seconds.</p>
+          </div>
+          <span class="timer-row__face timer-row__face--zen" aria-hidden="true">15<span class="timer-row__colon">:</span>00</span>
         </a>
       </li>
     </ul>

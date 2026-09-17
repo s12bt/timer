@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zen</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 画面は 1 枚だけ。設定中と計測中は同じ面の状態違いで、数字の要素は最後まで差し替えない -->
+  <main class="zen is-setting" id="zen">
+    <div class="stage">
+      <div class="ripples" id="ripples" aria-hidden="true"></div>
+
+      <svg class="ring" viewBox="0 0 200 200" aria-hidden="true">
+        <circle class="ring__track" cx="100" cy="100" r="94" />
+        <circle class="ring__line" id="ringLine" cx="100" cy="100" r="94" />
+      </svg>
+
+      <!-- 表示専用。時間の指定はプリセットのボタンと URL の ?t= で行う -->
+      <div class="time" role="timer" aria-live="off">
+        <span class="seg" id="minutes">00</span>
+        <span class="colon">:</span>
+        <span class="seg" id="seconds">00</span>
+      </div>
+    </div>
+
+    <p class="whisper" id="whisper">
+      <span class="whisper__text" id="whisperText"></span>
+      <button class="whisper__reset" id="resetBtn" type="button">Reset</button>
+    </p>
+
+    <div class="controls" id="controls">
+      <div class="presets" id="presets">
+        <button type="button" class="chip" data-add="30">+30s</button>
+        <button type="button" class="chip" data-add="60">+1m</button>
+        <button type="button" class="chip" data-add="300">+5m</button>
+        <button type="button" class="chip" data-add="600">+10m</button>
+        <button type="button" class="chip" data-add="1800">+30m</button>
+        <button type="button" class="chip chip--quiet" id="clearBtn">Reset</button>
+      </div>
+
+      <button class="begin" id="beginBtn" type="button">Begin</button>
+
+      <div class="checks">
+        <label class="check">
+          <input type="checkbox" id="soundCheck" checked>
+          <span>Sound a bell when time is up</span>
+        </label>
+
+        <label class="check">
+          <input type="checkbox" id="notifyToggle">
+          <span>Show a browser notification when time is up</span>
+        </label>
+      </div>
+
+      <p class="hint" id="hint"><kbd>Enter</kbd> to begin</p>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
