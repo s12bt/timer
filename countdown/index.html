@@ -15,18 +15,33 @@
   </script>
 </head>
 <body>
-  <div class="theme-switch" id="themeSwitch" role="group" aria-label="Theme">
-    <button class="theme-switch__btn" type="button" data-theme-value="light" aria-label="Light mode" aria-pressed="false">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="4.2" />
-        <path d="M12 2.2v2.3M12 19.5v2.3M4.4 4.4l1.6 1.6M18 18l1.6 1.6M2.2 12h2.3M19.5 12h2.3M4.4 19.6l1.6-1.6M18 6l1.6-1.6" />
+  <div class="corner-controls">
+    <button class="sound-toggle" id="soundToggle" type="button" aria-pressed="true">
+      <svg class="sound-toggle__on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 9.5h3.2L12 5.6v12.8L7.2 14.5H4z" />
+        <path d="M16.2 8.8a4.5 4.5 0 0 1 0 6.4M18.8 6.2a8 8 0 0 1 0 11.6" />
       </svg>
-    </button>
-    <button class="theme-switch__btn" type="button" data-theme-value="dark" aria-label="Dark mode" aria-pressed="false">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M20.5 14.6A8.6 8.6 0 1 1 9.4 3.5a6.9 6.9 0 0 0 11.1 11.1z" />
+      <svg class="sound-toggle__off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 9.5h3.2L12 5.6v12.8L7.2 14.5H4z" />
+        <path d="M16.5 9.8l4.4 4.4M20.9 9.8l-4.4 4.4" />
       </svg>
+      <span class="sound-toggle__on">Sound on</span>
+      <span class="sound-toggle__off">Sound off</span>
     </button>
+
+    <div class="theme-switch" id="themeSwitch" role="group" aria-label="Theme">
+      <button class="theme-switch__btn" type="button" data-theme-value="light" aria-label="Light mode" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.2" />
+          <path d="M12 2.2v2.3M12 19.5v2.3M4.4 4.4l1.6 1.6M18 18l1.6 1.6M2.2 12h2.3M19.5 12h2.3M4.4 19.6l1.6-1.6M18 6l1.6-1.6" />
+        </svg>
+      </button>
+      <button class="theme-switch__btn" type="button" data-theme-value="dark" aria-label="Dark mode" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20.5 14.6A8.6 8.6 0 1 1 9.4 3.5a6.9 6.9 0 0 0 11.1 11.1z" />
+        </svg>
+      </button>
+    </div>
   </div>
 
   <!-- 画面 1: 時間の設定 -->
@@ -35,7 +50,7 @@
 
     <form class="setup" id="setup" autocomplete="off">
       <div class="time-input">
-        <input class="seg" id="minutes" type="text" inputmode="numeric" maxlength="3" value="05" aria-label="Minutes">
+        <input class="seg" id="minutes" type="text" inputmode="numeric" maxlength="3" value="00" aria-label="Minutes">
         <span class="colon">:</span>
         <input class="seg" id="seconds" type="text" inputmode="numeric" maxlength="2" value="00" aria-label="Seconds">
       </div>
@@ -52,10 +67,17 @@
 
     <button class="btn btn--primary btn--large" id="startBtn" type="button">Start</button>
 
-    <label class="notify">
-      <input type="checkbox" id="notifyToggle">
-      <span>Show a browser notification when time is up</span>
-    </label>
+    <div class="checks">
+      <label class="check">
+        <input type="checkbox" id="soundCheck" checked>
+        <span>Play a sound when time is up</span>
+      </label>
+
+      <label class="check">
+        <input type="checkbox" id="notifyToggle">
+        <span>Show a browser notification when time is up</span>
+      </label>
+    </div>
 
     <div class="hints">
       <p class="hint" id="setupHint"><kbd>Enter</kbd> to start</p>

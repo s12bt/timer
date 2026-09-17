@@ -4,6 +4,7 @@ const TICK_MS = 200;
 const MAX_MINUTES = 999;
 const MAX_SECONDS = MAX_MINUTES * 60 + 59; // 入力欄が表せる上限 999:59
 const THEME_KEY = 'timer:countdown:theme'; // localStorage はドメイン全体で共有されるので、タイマー専用のキーにする
+const SOUND_KEY = 'timer:countdown:sound'; // テーマと同じく、このタイマー単独の設定として持つ
 const IDLE_MS = 2500;      // 操作が途切れてから UI を隠すまで
 const FIT_WIDTH = 0.92;    // 数字が使ってよい画面幅の割合
 const FIT_HEIGHT = 0.72;   // 同 高さ
@@ -28,6 +29,8 @@ const el = {
   backBtn: document.getElementById('backBtn'),
   setupHint: document.getElementById('setupHint'),
   notifyToggle: document.getElementById('notifyToggle'),
+  soundCheck: document.getElementById('soundCheck'),
+  soundToggle: document.getElementById('soundToggle'),
   themeSwitch: document.getElementById('themeSwitch'),
 };
 
@@ -37,6 +40,7 @@ const state = {
   endAt: 0,        // 実行中の終了時刻 (epoch ms)
   running: false,
   finished: false,
+  soundOn: true,   // 終了時に音を鳴らすか
 };
 
 let tickId = null;
@@ -216,6 +220,31 @@ function selectTheme(theme) {
 
 // ---- 音と通知 ----
 
+function storedSound() {
+  try {
+    return localStorage.getItem(SOUND_KEY) !== 'off'; // 保存が無いときは鳴らす側を既定にする
+  } catch {
+    return true; // プライベートモードなどで localStorage が使えないことがある
+  }
+}
+
+// 設定画面のチェックボックスとカウントダウン画面のトグルは同じ状態を指す
+function applySound(on) {
+  state.soundOn = on;
+  el.soundCheck.checked = on;
+  el.soundToggle.setAttribute('aria-pressed', String(on));
+}
+
+function selectSound(on) {
+  applySound(on);
+  if (on) ensureAudio(); // 切り替えはユーザー操作なので、ここで音声を解錠しておく
+  try {
+    localStorage.setItem(SOUND_KEY, on ? 'on' : 'off');
+  } catch {
+    // 保存できなくても、このセッションの設定は切り替わる
+  }
+}
+
 function ensureAudio() {
   const AudioCtor = window.AudioContext || window.webkitAudioContext;
   if (!AudioCtor) return null;
@@ -225,6 +254,7 @@ function ensureAudio() {
 }
 
 function playAlarm() {
+  if (!state.soundOn) return;
   const ctx = ensureAudio();
   if (!ctx) return;
   const start = ctx.currentTime + 0.05;
@@ -286,7 +316,7 @@ function startFromSetup() {
   }
   resetSetupHint();
 
-  ensureAudio(); // ユーザー操作のタイミングで音声を解錠しておく
+  if (state.soundOn) ensureAudio(); // ユーザー操作のタイミングで音声を解錠しておく
   state.durationMs = ms;
   state.remainingMs = ms;
   showScreen('run');
@@ -322,7 +352,7 @@ function finish() {
   el.runScreen.classList.remove('is-paused');
   el.runScreen.classList.add('is-finished');
   setPrimaryLabel('Restart');
-  setRunStatus('Done');
+  setRunStatus(''); // 終了は数字とバーの色で示す
   revealControls();
   render();
 
@@ -415,6 +445,9 @@ SEGMENTS.forEach((seg) => {
   });
 });
 
+el.soundToggle.addEventListener('click', () => selectSound(!state.soundOn));
+el.soundCheck.addEventListener('change', () => selectSound(el.soundCheck.checked));
+
 el.themeSwitch.addEventListener('click', (event) => {
   const btn = event.target.closest('[data-theme-value]');
   if (btn) selectTheme(btn.dataset.themeValue);
@@ -476,6 +509,7 @@ document.addEventListener('keydown', (event) => {
 });
 
 applyTheme(storedTheme() || (darkQuery.matches ? 'dark' : 'light'));
+applySound(storedSound());
 SEGMENTS.forEach(normalizeSegment);
 const queryTime = timeFromQuery();
 if (queryTime) fillInputs(queryTime);

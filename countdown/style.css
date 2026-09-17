@@ -9,6 +9,7 @@
   --accent: #2f5fe0;
   --accent-strong: #1f4bc4;
   --danger: #d13b3b;
+  --finish: #17804a;
   --track: #e5e9f2;
   --accent-soft: rgba(47, 95, 224, 0.14);
   --danger-soft: rgba(209, 59, 59, 0.1);
@@ -23,6 +24,7 @@
   --accent: #5b8cff;
   --accent-strong: #7aa2ff;
   --danger: #ff6b6b;
+  --finish: #5fd39a;
   --track: #232c44;
   --accent-soft: rgba(91, 140, 255, 0.22);
   --danger-soft: rgba(255, 107, 107, 0.16);
@@ -56,23 +58,67 @@ body {
 
 /* ============ テーマ切り替え ============ */
 
-.theme-switch {
+/* 右上の操作類。サウンドとテーマを 1 つのまとまりとして置き、位置はここだけで持つ */
+.corner-controls {
   position: fixed;
   top: 20px;
   right: 20px;
   z-index: 2;
   display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: opacity 0.4s ease;
+}
+
+/* カウント中に操作 UI が引っ込むときは、右上の操作類も一緒に消す */
+body:has(.run-screen.is-idle) .corner-controls {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* サウンドの切り替えはカウントダウン画面だけに出す。設定画面では同じ役割をチェックボックスが持つ */
+body:has(.run-screen[hidden]) .sound-toggle { display: none; }
+
+.sound-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 40px;  /* テーマ切り替え (34px + 上下 3px の余白) と高さを揃える */
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--track);
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: color 0.18s ease;
+}
+
+.sound-toggle:hover { color: var(--text); }
+.sound-toggle[aria-pressed="true"] { color: var(--text); }
+
+.sound-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* 消音中はスピーカーに斜線の入った側へ差し替える */
+.sound-toggle__off { display: none; }
+.sound-toggle[aria-pressed="false"] .sound-toggle__on { display: none; }
+.sound-toggle[aria-pressed="false"] .sound-toggle__off { display: block; }
+
+.sound-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.theme-switch {
+  display: flex;
   gap: 2px;
   padding: 3px;
   border-radius: 999px;
   background: var(--track);
-  transition: opacity 0.4s ease;
-}
-
-/* カウント中に操作 UI が引っ込むときは、テーマ切り替えも一緒に消す */
-body:has(.run-screen.is-idle) .theme-switch {
-  opacity: 0;
-  pointer-events: none;
 }
 
 .theme-switch__btn {
@@ -347,9 +393,9 @@ body:has(.run-screen.is-idle) .theme-switch {
   opacity: 0.5;
 }
 
-.run-screen.is-finished .display { color: var(--danger); }
-.run-screen.is-finished .run-status { color: var(--danger); }
-.run-screen.is-finished .bar__fill { background: var(--danger); }
+.run-screen.is-finished .display { color: var(--finish); }
+.run-screen.is-finished .run-status { color: var(--finish); }
+.run-screen.is-finished .bar__fill { background: var(--finish); }
 
 .bar {
   position: absolute;
@@ -415,7 +461,15 @@ body:has(.run-screen.is-idle) .theme-switch {
   outline-offset: 2px;
 }
 
-.notify {
+/* Start の下に積むチェックボックス群 */
+.checks {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.check {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -480,7 +534,7 @@ kbd {
 /* ============ 高さの低い横長画面 (スマホの横向き) ============ */
 
 @media (orientation: landscape) and (max-height: 500px) {
-  .theme-switch {
+  .corner-controls {
     top: 12px;
     right: 12px;
   }
