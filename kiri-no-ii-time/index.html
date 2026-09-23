@@ -7,13 +7,29 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- 右上の操作。位置はここだけで持つ (countdown と同じ置き方) -->
+  <div class="corner-controls">
+    <button class="btn sound-toggle" id="soundToggle" type="button" aria-pressed="true">
+      <svg class="sound-toggle__on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 9.5h3.2L12 5.6v12.8L7.2 14.5H4z" />
+        <path d="M16.2 8.8a4.5 4.5 0 0 1 0 6.4M18.8 6.2a8 8 0 0 1 0 11.6" />
+      </svg>
+      <svg class="sound-toggle__off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 9.5h3.2L12 5.6v12.8L7.2 14.5H4z" />
+        <path d="M16.5 9.8l4.4 4.4M20.9 9.8l-4.4 4.4" />
+      </svg>
+      <span class="sound-toggle__on">音が出ます</span>
+      <span class="sound-toggle__off">消音</span>
+    </button>
+  </div>
+
   <!-- 画面は 1 枚。選ぶ場面と数える場面は同じ盤面の状態違いで、時計そのものは最後まで止めない。
        終点が壁時計の時刻なので、このタイマーには「開始」も「一時停止」も無い。
        目盛を押した時点で終わりの時刻が決まり、あとは現在時刻が追いつくのを待つだけ -->
   <main class="kiri is-setting" id="kiri">
     <!-- 選ぶ対象は時刻なので、盤面の上に置く。目盛を hover したときの行き先もここに出るので、
          視線が盤面から下まで往復せずに済む -->
-    <p class="lead" id="lead">終わりの時刻を選ぶ</p>
+    <p class="lead"><span class="lead__main" id="leadMain">何分までやる？</span><span class="lead__suffix" id="leadSuffix"></span></p>
 
     <div class="stage">
       <svg class="dial" viewBox="0 0 200 200" aria-hidden="true">
@@ -56,16 +72,11 @@
       <p class="readout__remain" id="remain" role="timer" aria-live="off">
         <span class="seg" id="remainValue">0:00</span>
       </p>
-      <p class="readout__target" id="targetLabel"></p>
+      <p class="readout__note" id="noteLabel"></p>
     </div>
 
     <div class="controls">
-      <button class="reset" id="resetBtn" type="button">選び直す</button>
-
-      <label class="check">
-        <input type="checkbox" id="soundCheck" checked>
-        <span>終わったら音を鳴らす</span>
-      </label>
+      <button class="btn reset" id="resetBtn" type="button">時間を選び直す</button>
     </div>
   </main>
 

@@ -11,15 +11,24 @@
 :root {
   color-scheme: light;
   --bg: #eeece8; /* 文字盤が白になったので、地は一段落として盤を浮かせる */
-  --text: #2b2a27;
-  --text-dim: rgba(43, 42, 39, 0.45);
-  --line: rgba(43, 42, 39, 0.14);
-  --line-faint: rgba(43, 42, 39, 0.07);
+  /* 文字はすべてこの 1 色。濃さで階層を作らない (--text-dim は呼び出し側の意図を残すための別名) */
+  --text: #3a3a3c;
+  /* 例外はボタンの文字だけ。読むための文字より一段濃くして、押せるものだと分かる重さを持たせる */
+  --ink-strong: #26262a;
+  --text-dim: #3a3a3c;
+  --line: rgba(58, 58, 60, 0.14);
+  --line-faint: rgba(58, 58, 60, 0.07);
   /* 扇。離れた場所から面積として読ませる。終わりの時刻に関わるものと同じ色系統で、
      目盛と数字がその上に乗っても読める濃さに留める */
   --wedge: rgba(215, 127, 87, 0.2); /* #d77f57 */
-  --font-display: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Helvetica Neue", system-ui, sans-serif;
+  /* 終わりの時刻に関わるものの色。扇の終端と、終わったときの合図で使う */
+  --mark: #d76e57;
+  /* 終わったときの縁だけ、合図として一段濃い側を使う */
+  --mark-strong: #cf5a3e;
+  /* 数字だけこの書体。SF Pro Display は日本語のグリフを持たないので、
+     案内文は次の候補 (游ゴシック) が拾う。同じ要素の中で数字と日本語が書き分かる */
+  --font-display: "SF Pro Display", "游ゴシック体", YuGothic, "游ゴシック Medium",
+    "Yu Gothic Medium", "游ゴシック", "Yu Gothic", メイリオ, "Hiragino sans", sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -34,10 +43,89 @@ body {
   min-height: 100dvh;
   background: var(--bg);
   color: var(--text);
-  font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+  font-family: "游ゴシック体", YuGothic, "游ゴシック Medium", "Yu Gothic Medium", "游ゴシック", "Yu Gothic",
+    メイリオ, "Hiragino sans", sans-serif;
   -webkit-font-smoothing: antialiased;
   touch-action: manipulation;
 }
+
+/* 押せるものは地を持たず、枠だけの pill で統一する。
+   右上の音の切り替えも、下の「選び直す」も同じ形。
+   hover は枠をインクの色まで持ち上げて、触れていることをはっきり返す */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 46px;
+  padding: 0 22px;
+  border: 1px solid var(--line-faint);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-strong);
+  font-family: inherit;
+  font-size: 16px;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.btn:hover { border-color: var(--text); }
+
+/* 押している間は枠をもう一段濃くして、地にもごく薄く色を入れる。
+   形は動かさない (沈ませると盤面の静けさに対して動きが立ちすぎる) */
+.btn:active {
+  border-color: var(--ink-strong);
+  background: rgba(58, 58, 60, 0.16);
+}
+
+/* 操作 (右上の音・下の出口) は普段出しておき、数えている間に操作が途切れたら引っ込める。
+   置きっぱなしで眺める道具なので、触っていない間は盤面と数字だけを残したい。
+   動かすか押すかで戻る (countdown と同じ作り) */
+.corner-controls,
+.controls {
+  transition: opacity 0.4s ease;
+}
+
+.kiri.is-idle .controls,
+body:has(.kiri.is-idle) .corner-controls {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 操作が引いている間はマウスポインタも消す。数字と盤面だけの画面にする */
+.kiri.is-idle { cursor: none; }
+
+/* 右上の操作類。位置はここだけで持つ */
+.corner-controls {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 2;
+}
+
+/* 音の切り替え。「選び直す」と同じ pill の作り。
+   いまの状態はアイコン (斜線の有無) と語の両方で示す */
+/* 消音中はアイコンも語も薄く落とす (countdown と同じ差の付け方)。
+   画面の文字は 1 色で通しているが、ここは状態そのものを色で言う場所 */
+.sound-toggle[aria-pressed="false"] { color: rgba(58, 58, 60, 0.4); }
+
+.sound-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* 語の長さが状態で変わるので、文字の箱を先に確保してボタンの幅を動かさない
+   (長い方の「音が出ます」= 全角 5 文字 + 字間ぶん)。
+   中央寄せにして、短い語のときの余りを左右へ散らす */
+.sound-toggle span {
+  min-width: 5.4em;
+  text-align: center;
+}
+
+.sound-toggle__off { display: none; }
+.sound-toggle[aria-pressed="false"] .sound-toggle__on { display: none; }
+.sound-toggle[aria-pressed="false"] .sound-toggle__off { display: block; }
 
 .kiri {
   position: relative;
@@ -57,28 +145,29 @@ body {
    終わったあとは区切りの時刻そのもの。どの場面でも同じ位置に居座らせる。
    文言で字の大きさが変わっても盤面が上下に跳ねないよう、箱の高さは固定して中で縦中央に置く */
 .lead {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 54px;
+  min-height: 62px;
   margin: 0;
-  font-size: 22px;
+  line-height: 1.4;
   letter-spacing: 0.08em;
-  color: rgba(43, 42, 39, 0.55);
+  color: var(--text);
   text-align: center;
 }
 
-/* 終わったあとは区切りの時刻そのものを出すので、一段大きく濃くする */
-.kiri.is-finished .lead {
-  font-size: clamp(30px, 5vw, 42px);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--text);
+.lead__main {
+  font-family: var(--font-display);
+  font-size: 48px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 「まで」は時刻に添える語。同じ大きさで並べると、時刻と対等な情報に見えてしまう */
+.lead__suffix {
+  margin-left: 0.3em;
+  font-size: 24px;
 }
 
 .stage {
   position: relative;
-  width: min(66vmin, 440px);
+  width: min(72vmin, 480px);
   aspect-ratio: 1;
   flex: none;
 }
@@ -101,7 +190,7 @@ body {
    平らな画面で太さだけ真似ると輪郭が重くなる */
 .dial__rim {
   fill: none;
-  stroke: rgba(43, 42, 39, 0.58);
+  stroke: rgba(58, 58, 60, 0.58);
   stroke-width: 1.1;
 }
 
@@ -116,7 +205,7 @@ body {
 /* 扇の終わり側の境界。狙いの線 (.aim) と同じ色・同じ太さで、濃さだけを上げて置く。
    選ぶ前は薄い線が行き先を指し、選んだあとは同じ線がそこに残る、という繋がりにする */
 .dial__edge {
-  stroke: #d76e57;
+  stroke: var(--mark);
   stroke-width: 0.8; /* .aim と同じ。ここだけ太くすると線が 2 種類あるように見える */
   opacity: 0;
   transition: opacity 0.25s ease;
@@ -128,22 +217,22 @@ body {
    掛け時計の目盛は縁に接しておらず、白い余白の帯が 1 本ぶん外にある。
    端は切り落とし (butt)。round にすると 60 本ぶんの丸みが帯になって、もう 1 本の輪郭が生まれる */
 .dial__tick {
-  stroke: rgba(43, 42, 39, 0.5);
+  stroke: rgba(58, 58, 60, 0.5);
   stroke-width: 0.45;
 }
 
 /* 5 分ごと。押せる位置はここ。太さではなく長さで立たせる
    (掛け時計の目盛は 60 本ともほぼ同じ細さで、違うのは丈だけ) */
 .dial__tick--major {
-  stroke: rgba(43, 42, 39, 0.72);
+  stroke: rgba(58, 58, 60, 0.72);
   stroke-width: 0.8;
 }
 
-/* 時の数字。線幅が一定の細いサンセリフを大きく置く。
-   掛け時計の文字盤はセリフ体ではなく、ヘアラインの太さが変わらない書体で、
-   大きさだけで存在を持たせている。線に強弱を付けると別の時代の時計になる */
+/* 時の数字。ここだけは画面の書体を継承させず、線幅が一定の細いサンセリフを当てる。
+   掛け時計の文字盤は大きさだけで数字の存在を持たせていて、線に強弱が付くと別物になる。
+   色は画面全体と同じ 1 色 */
 .dial__label {
-  fill: rgba(43, 42, 39, 0.85);
+  fill: var(--text);
   font-family: "Helvetica Neue", Helvetica, "Segoe UI", Arial, sans-serif;
   font-size: 19px;
   font-weight: 200; /* Helvetica Neue UltraLight。無い環境では Light〜Regular に落ちる */
@@ -177,7 +266,7 @@ body {
 
 /* 押す前に結果を見せる。hover した扇をごく薄く塗り、同時に選ばれる時刻を盤面の上に出す
    (プレビューの文字は JS が .lead に差し替える) */
-.hit:hover { fill: rgba(43, 42, 39, 0.05); }
+.hit:hover { fill: rgba(58, 58, 60, 0.05); }
 
 /* 扇 1 枚は 30 度ある。面を塗るだけではどの目盛に付くのかが読めないので、中心線で指す。
    盤面で唯一の色。針や目盛と同じインクだと 3 本目の針に見えるので、別の色で差す */
@@ -190,7 +279,7 @@ body {
 
 .hits.is-aiming .aim { opacity: 1; }
 
-.hit:focus-visible { fill: rgba(43, 42, 39, 0.08); }
+.hit:focus-visible { fill: rgba(58, 58, 60, 0.08); }
 
 /* 数えている間だけ盤面を表示に回す。誤って触って終点が飛ぶのを防ぐため。
    終わったあとは押せる側に戻す。「18:00 まで」の次に「じゃあ 18:30 まで」が来るのがこの道具の常なので、
@@ -204,7 +293,9 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  min-height: 92px; /* 状態で行数が変わっても盤面が上下に跳ねないよう、高さを先に取っておく */
+  /* 場面が変わっても盤面が上下に動かないよう、中身の高さを常に同じにする。
+     設定中は文字を消すのではなく透明にして、場所だけ残す */
+  min-height: 92px;
   text-align: center;
 }
 
@@ -216,23 +307,56 @@ body {
   font-size: clamp(46px, 9vw, 76px);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.05em;
   line-height: 1;
 }
 
-.readout__target {
+.readout__note {
   margin: 0;
-  font-size: 14px;
+  min-height: 1.5em; /* 文言が空の場面でも行を畳ませない */
+  font-size: 18px;
   letter-spacing: 0.06em;
   color: var(--text-dim);
 }
 
 /* 選ぶ場面では残り時間を出さない (まだ決まっていないので 0 を出す意味がない) */
 .kiri.is-setting .readout__remain,
-.kiri.is-setting .readout__target { display: none; }
+.kiri.is-setting .readout__note { visibility: hidden; }
 
-/* 終わったあとは残り時間の 0:00 ではなく、盤面の上の区切りの時刻の方を読ませる */
-.kiri.is-finished .readout__remain { display: none; }
+/* 終わったら縁が色を持って震える。扇が消えて盤面から色が引いたあと、
+   盤の輪郭そのものが合図を引き継ぐ。
+   なめらかに明滅させると呼吸になってしまうので、2 回ぶるっと震えて止まる、を繰り返す。
+   震えは 2 秒のうち最初の 0.3 秒だけで、残りは休み。休んでいる間も色は透かさず、輪ははっきり残す。
+   補間は linear にする (ease だと一回ごとの立ち上がりが鈍って震えに聞こえない) */
+@keyframes rim-buzz {
+  0%   { transform: scale(1);     stroke: var(--mark); }
+  3%   { transform: scale(1.015); stroke: var(--mark-strong); }
+  7%   { transform: scale(0.997); stroke: var(--mark-strong); }
+  11%  { transform: scale(1.013); stroke: var(--mark-strong); }
+  15%  { transform: scale(1);     stroke: var(--mark); }
+  100% { transform: scale(1);     stroke: var(--mark); }
+}
+
+.kiri.is-finished .dial__rim {
+  stroke: var(--mark); /* 休んでいる間の色。震えている間だけ一段濃い側へ振れる */
+  stroke-width: 1.6;
+  /* SVG の transform は既定で viewBox の原点を軸にするので、図形の中心へ移す */
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: rim-buzz 2s linear infinite;
+}
+
+/* 動きを減らす設定では明滅させず、色だけで示す */
+@media (prefers-reduced-motion: reduce) {
+  .kiri.is-finished .dial__rim { animation: none; }
+}
+
+/* 終わったときだけ、添えの語が合図になる。
+   盤面から扇の色が引くので、その色をここへ移す形にする */
+.kiri.is-finished .readout__note {
+  font-weight: 700;
+  color: var(--mark);
+}
 
 /* ============ 操作 ============ */
 
@@ -240,41 +364,37 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* 残り時間と出口の間は、盤面と文字の間より少し広く取る (読むものと押すものを分ける) */
+  margin-top: 12px;
   gap: 16px;
   min-height: 62px;
 }
 
+/* 「時間を選び直す」は右上の音の切り替えと同じ pill にはしない。
+   右上は状態を見せる常設の表示で、こちらは押して次へ進む出口。役が違うので形も分ける。
+   枠は最初から濃く置き、hover では地と文字をそのまま入れ替える */
 .reset {
-  padding: 8px 20px;
-  border: 1px solid var(--line-faint);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text-dim);
-  font-family: inherit;
-  font-size: 14px;
-  letter-spacing: 0.06em;
-  cursor: pointer;
-  transition: color 0.2s ease, border-color 0.2s ease;
+  border-radius: 6px;
+  border-color: var(--text);
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
 
 .reset:hover {
-  color: var(--text);
-  border-color: var(--line);
+  border-color: var(--ink-strong);
+  background: var(--ink-strong);
+  color: var(--bg);
+}
+
+/* 押している間は地をもう一段沈める。hover の反転 (#26262a) からはっきり落として、
+   押した瞬間が分かる段差にする */
+.reset:active {
+  border-color: #0e0e11;
+  background: #0e0e11;
+  color: var(--bg);
 }
 
 /* 選ぶ場面には出口が要らない (まだ何も選ばれていない) */
 .kiri.is-setting .reset { visibility: hidden; }
-
-.check {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--text-dim);
-  cursor: pointer;
-}
-
-.check input { accent-color: rgba(43, 42, 39, 0.5); }
 
 :focus-visible {
   outline: 1px solid var(--line);

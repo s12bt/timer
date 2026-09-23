@@ -7,6 +7,7 @@ const SOUND_KEY = 'timer:kiri-no-ii-time:sound'; // localStorage はドメイン
 // 押した瞬間より先にある時刻だけを終点にする。ちょうどその分に入っている時は次の時間へ送るが、
 // 境目を 0 秒にすると「17:40 に 40 分の目盛を押したら 1 秒後に終わる」が起きるので少し余裕を取る
 const LEAD_MS = 10000;
+const IDLE_MS = 2500; // 操作が途切れてから操作を隠すまで (countdown と同じ間)
 // 扇の半径。縁の内側ぎりぎりまで。終わりの時刻は扇の終端がそのまま示すので、別の印は置かない。
 // 目盛も数字も扇より後に描かれるので、扇の上に乗って読める
 const WEDGE_R = 96.4;
@@ -21,11 +22,12 @@ const el = {
   aimLine: document.getElementById('aimLine'),
   hourHand: document.getElementById('hourHand'),
   minuteHand: document.getElementById('minuteHand'),
-  lead: document.getElementById('lead'),
+  leadMain: document.getElementById('leadMain'),
+  leadSuffix: document.getElementById('leadSuffix'),
   remainValue: document.getElementById('remainValue'),
-  targetLabel: document.getElementById('targetLabel'),
+  noteLabel: document.getElementById('noteLabel'),
   resetBtn: document.getElementById('resetBtn'),
-  soundCheck: document.getElementById('soundCheck'),
+  soundToggle: document.getElementById('soundToggle'),
 };
 
 const state = {
@@ -35,6 +37,7 @@ const state = {
 };
 
 let tickId = null;
+let idleTimer = null;
 let audioCtx = null;
 let labelMinute = -1; // 読み上げ用のラベルを作り直した分。毎 tick 12 個書き換えないための目印
 
@@ -158,9 +161,25 @@ function phase() {
   return 'setting';
 }
 
+// 操作を出して、隠すまでの時計を張り直す。
+// 隠すのは数えている間だけ。選ぶ場面と終わったあとは、操作そのものが用なので出したままにする
+function revealControls() {
+  el.kiri.classList.remove('is-idle');
+  clearTimeout(idleTimer);
+  if (phase() === 'running') {
+    idleTimer = setTimeout(() => el.kiri.classList.add('is-idle'), IDLE_MS);
+  }
+}
+
 function setPhase(name) {
   el.kiri.classList.remove('is-setting', 'is-running', 'is-finished');
   el.kiri.classList.add('is-' + name);
+}
+
+// 盤面の上の一行。時刻と「まで」で字の大きさが違うので、2 つに分けて入れる
+function setLead(main, suffix) {
+  el.leadMain.textContent = main;
+  el.leadSuffix.textContent = suffix || '';
 }
 
 function setTitle(text) {
@@ -203,7 +222,7 @@ function storedSound() {
 
 function applySound(on) {
   state.soundOn = on;
-  el.soundCheck.checked = on;
+  el.soundToggle.setAttribute('aria-pressed', String(on));
 }
 
 function selectSound(on) {
@@ -264,21 +283,22 @@ function choose(step) {
   line(el.wedgeEdge, at.getMinutes() * 6, 0, WEDGE_R);
   // 終わりの時刻は選ぶ前も選んだ後も盤面の上。hover のプレビューがそのまま居座る形にして、
   // 押した瞬間に文字が下へ飛ばないようにする
-  el.lead.textContent = hhmm(at) + ' まで';
-  el.targetLabel.textContent = '';
+  setLead(hhmm(at), 'まで');
+  // 大きな数字は残り時間なので、その意味を一語だけ下に添える
+  el.noteLabel.textContent = 'のこり';
   el.hits.classList.remove('is-aiming'); // 数え始めたら狙いの線は用済み
   setPhase('running');
+  revealControls();
   render();
 }
 
 function finish() {
   state.finished = true;
   setPhase('finished');
-  // 終わったら残りの 0:00 ではなく、区切りの時刻そのものを大きく出す。
-  // 「何分余ったか」ではなく「何時になったか」を共有するための道具なので
-  const at = new Date(state.targetAt);
-  el.lead.textContent = hhmm(at);
-  el.targetLabel.textContent = '時間です';
+  revealControls();
+  // 上の「◯◯まで」は据え置き。下は 0:00 で止めて、添えの語だけを終わりの合図に差し替える
+  el.remainValue.textContent = mmss(0);
+  el.noteLabel.textContent = '時間になりました';
   el.wedge.setAttribute('d', '');
   setTitle();
   playChime();
@@ -286,11 +306,12 @@ function finish() {
 
 function toSetting() {
   setPhase('setting');
+  revealControls();
   state.targetAt = 0;
   state.finished = false;
   el.wedge.setAttribute('d', '');
-  el.lead.textContent = '終わりの時刻を選ぶ';
-  el.targetLabel.textContent = '';
+  setLead('何分までやる？');
+  el.noteLabel.textContent = '';
   setTitle();
   render();
 }
@@ -318,14 +339,14 @@ el.hits.addEventListener('click', (event) => {
 function preview(hit) {
   if (phase() !== 'setting') return;
   const step = Number(hit.dataset.step);
-  el.lead.textContent = hhmm(new Date(targetForStep(step))) + ' まで';
+  setLead(hhmm(new Date(targetForStep(step))), 'まで');
   line(el.aimLine, step * 30, 0, 96);
   el.hits.classList.add('is-aiming');
 }
 
 function clearPreview() {
   if (phase() !== 'setting') return;
-  el.lead.textContent = '終わりの時刻を選ぶ';
+  setLead('何分までやる？');
   el.hits.classList.remove('is-aiming');
 }
 
@@ -356,7 +377,12 @@ el.hits.addEventListener('keydown', (event) => {
 
 el.resetBtn.addEventListener('click', toSetting);
 
-el.soundCheck.addEventListener('change', () => selectSound(el.soundCheck.checked));
+el.soundToggle.addEventListener('click', () => selectSound(!state.soundOn));
+
+// 触っていれば出る。countdown と同じく、動かすか押すかで戻す
+for (const type of ['mousemove', 'pointerdown']) {
+  document.addEventListener(type, revealControls);
+}
 
 document.addEventListener('keydown', (event) => {
   if (event.metaKey || event.ctrlKey || event.altKey) return;
