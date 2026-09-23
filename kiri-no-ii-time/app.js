@@ -7,17 +7,18 @@ const SOUND_KEY = 'timer:kiri-no-ii-time:sound'; // localStorage はドメイン
 // 押した瞬間より先にある時刻だけを終点にする。ちょうどその分に入っている時は次の時間へ送るが、
 // 境目を 0 秒にすると「17:40 に 40 分の目盛を押したら 1 秒後に終わる」が起きるので少し余裕を取る
 const LEAD_MS = 10000;
-// 扇の半径。数字の輪の内側で止める。目盛まで伸ばすと面積は稼げるが、数字を飲み込んで
-// 文字盤が濁る。面積が減っても角度は同じなので、残りの読み取りは損なわれない
-const WEDGE_R = 52;
+// 扇の半径。縁の内側ぎりぎりまで。終わりの時刻は扇の終端がそのまま示すので、別の印は置かない。
+// 目盛も数字も扇より後に描かれるので、扇の上に乗って読める
+const WEDGE_R = 96.4;
 
 const el = {
   kiri: document.getElementById('kiri'),
   wedge: document.getElementById('wedge'),
+  wedgeEdge: document.getElementById('wedgeEdge'),
   ticks: document.getElementById('ticks'),
   labels: document.getElementById('labels'),
   hits: document.getElementById('hits'),
-  targetMark: document.getElementById('targetMark'),
+  aimLine: document.getElementById('aimLine'),
   hourHand: document.getElementById('hourHand'),
   minuteHand: document.getElementById('minuteHand'),
   lead: document.getElementById('lead'),
@@ -132,6 +133,9 @@ function buildDial() {
     hit.dataset.step = String(i);
     el.hits.appendChild(hit);
   }
+
+  // 狙いの線を当たり判定の後ろへ回す。SVG は DOM の順で重なるので、これで最前面に出る
+  el.hits.appendChild(el.aimLine);
 }
 
 // 読み上げ用のラベルは行き先の時刻そのものにする (「10 分の目盛」ではなく「18:10 まで」)。
@@ -256,10 +260,13 @@ function choose(step) {
   state.finished = false;
 
   const at = new Date(state.targetAt);
-  line(el.targetMark, at.getMinutes() * 6, 80, 86); // 5 分目盛にぴたりと重ねて、その 1 本だけを濃くする
-  el.targetLabel.textContent = hhmm(at) + ' まで';
-  // 終わった画面から直接選び直せるので、大きく出ていた区切りの時刻をここで戻しておく
-  el.lead.textContent = '終わりの時刻を選ぶ';
+  // 扇の終わり側の境界を引く。始まり側は現在時刻とともに進むが、この辺は選んだ時刻に釘付けになる
+  line(el.wedgeEdge, at.getMinutes() * 6, 0, WEDGE_R);
+  // 終わりの時刻は選ぶ前も選んだ後も盤面の上。hover のプレビューがそのまま居座る形にして、
+  // 押した瞬間に文字が下へ飛ばないようにする
+  el.lead.textContent = hhmm(at) + ' まで';
+  el.targetLabel.textContent = '';
+  el.hits.classList.remove('is-aiming'); // 数え始めたら狙いの線は用済み
   setPhase('running');
   render();
 }
@@ -306,15 +313,20 @@ el.hits.addEventListener('click', (event) => {
   if (hit) choose(Number(hit.dataset.step));
 });
 
-// 押す前に行き先を見せる。盤面の下の一行を、その目盛が指す時刻に差し替える
+// 押す前に行き先を見せる。盤面の上の一行をその時刻に差し替え、
+// 同時に扇を二等分する線でどの目盛に付くのかを盤面の上でも示す
 function preview(hit) {
   if (phase() !== 'setting') return;
-  el.lead.textContent = hhmm(new Date(targetForStep(Number(hit.dataset.step)))) + ' まで';
+  const step = Number(hit.dataset.step);
+  el.lead.textContent = hhmm(new Date(targetForStep(step))) + ' まで';
+  line(el.aimLine, step * 30, 0, 96);
+  el.hits.classList.add('is-aiming');
 }
 
 function clearPreview() {
   if (phase() !== 'setting') return;
   el.lead.textContent = '終わりの時刻を選ぶ';
+  el.hits.classList.remove('is-aiming');
 }
 
 el.hits.addEventListener('mouseover', (event) => {

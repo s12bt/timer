@@ -4,7 +4,10 @@
 
    テーマは持たずライト固定 (前提: テーマ対応は各タイマーの任意)。
    地は countdown の青寄りの白 (#f4f6fb) とも zen の温白 (#f7f6f3) とも変えて、温度のない白にする。
-   この道具は集中でも高揚でもなく「区切り」が主題なので、色に寄る理由がない */
+   色は 1 系統だけ持つ。終わりの時刻に関わるもの (狙いの線・扇の終端・扇そのもの) を橙寄りの赤で通し、
+   文字盤の側 (目盛・数字・針・縁) は無彩色のまま残す。
+   文字盤は掛け時計の作りに寄せてある: 白い盤、密な 60 本の分目盛、線幅の一定な細い数字、
+   根元から先まで同じ太さの針 */
 :root {
   color-scheme: light;
   --bg: #eeece8; /* 文字盤が白になったので、地は一段落として盤を浮かせる */
@@ -12,9 +15,9 @@
   --text-dim: rgba(43, 42, 39, 0.45);
   --line: rgba(43, 42, 39, 0.14);
   --line-faint: rgba(43, 42, 39, 0.07);
-  /* 扇。離れた場所から面積として読ませるので、zen の弧 (細い線) より濃い側に置く。
-     これより薄いと 2m 離れた時点で消え、これより濃いと針と目盛が読めなくなる */
-  --wedge: rgba(43, 42, 39, 0.17);
+  /* 扇。離れた場所から面積として読ませる。終わりの時刻に関わるものと同じ色系統で、
+     目盛と数字がその上に乗っても読める濃さに留める */
+  --wedge: rgba(215, 127, 87, 0.2); /* #d77f57 */
   --font-display: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", system-ui, sans-serif;
 }
@@ -49,6 +52,29 @@ body {
 }
 
 /* ============ 盤面 ============ */
+
+/* 盤面の上の一行。選ぶ前は案内、hover 中は行き先の時刻、数えている間は選んだ時刻、
+   終わったあとは区切りの時刻そのもの。どの場面でも同じ位置に居座らせる。
+   文言で字の大きさが変わっても盤面が上下に跳ねないよう、箱の高さは固定して中で縦中央に置く */
+.lead {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 54px;
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: 0.08em;
+  color: rgba(43, 42, 39, 0.55);
+  text-align: center;
+}
+
+/* 終わったあとは区切りの時刻そのものを出すので、一段大きく濃くする */
+.kiri.is-finished .lead {
+  font-size: clamp(30px, 5vw, 42px);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
 
 .stage {
   position: relative;
@@ -87,6 +113,17 @@ body {
   stroke: none;
 }
 
+/* 扇の終わり側の境界。狙いの線 (.aim) と同じ色・同じ太さで、濃さだけを上げて置く。
+   選ぶ前は薄い線が行き先を指し、選んだあとは同じ線がそこに残る、という繋がりにする */
+.dial__edge {
+  stroke: #d76e57;
+  stroke-width: 0.8; /* .aim と同じ。ここだけ太くすると線が 2 種類あるように見える */
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.kiri.is-running .dial__edge { opacity: 1; }
+
 /* 分目盛 60 本。縁との間には余白を空け、内側へ向けて長く伸ばす。
    掛け時計の目盛は縁に接しておらず、白い余白の帯が 1 本ぶん外にある。
    端は切り落とし (butt)。round にすると 60 本ぶんの丸みが帯になって、もう 1 本の輪郭が生まれる */
@@ -116,18 +153,6 @@ body {
   user-select: none;
 }
 
-/* 終わりの時刻。5 分目盛の 1 本に重ねて、そこだけを濃く太くする。
-   針と同じ中心から出す形にすると、3 本目の針にしか見えない */
-.dial__target {
-  stroke: var(--text);
-  stroke-width: 2.2;
-  opacity: 0;
-  transition: opacity 0.25s ease;
-}
-
-.kiri.is-running .dial__target,
-.kiri.is-finished .dial__target { opacity: 1; }
-
 /* ============ 針 ============ */
 
 /* 秒針は置かない。常に動き続けるものを画面に置くと、置きっぱなしの道具では視線を奪い続ける。
@@ -136,8 +161,8 @@ body {
 .dial__hand { stroke: var(--text); }
 
 /* 先端は切り落としたまま。尖らせない。round にすると丸みが付いて、指している目盛が曖昧になる */
-.dial__hand--hour { stroke-width: 2.5; }
-.dial__hand--minute { stroke-width: 2.1; }
+.dial__hand--hour { stroke-width: 3; }
+.dial__hand--minute { stroke-width: 2.5; }
 
 .dial__pin { fill: var(--text); }
 
@@ -150,9 +175,20 @@ body {
   outline: none;
 }
 
-/* 押す前に結果を見せる。hover した扇をごく薄く塗り、同時に選ばれる時刻を盤面の下に出す
-   (プレビューの文字は JS が .readout__lead に差し替える) */
+/* 押す前に結果を見せる。hover した扇をごく薄く塗り、同時に選ばれる時刻を盤面の上に出す
+   (プレビューの文字は JS が .lead に差し替える) */
 .hit:hover { fill: rgba(43, 42, 39, 0.05); }
+
+/* 扇 1 枚は 30 度ある。面を塗るだけではどの目盛に付くのかが読めないので、中心線で指す。
+   盤面で唯一の色。針や目盛と同じインクだと 3 本目の針に見えるので、別の色で差す */
+.aim {
+  stroke: rgba(215, 110, 87, 0.6); /* #d76e57 */
+  stroke-width: 0.8;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.hits.is-aiming .aim { opacity: 1; }
 
 .hit:focus-visible { fill: rgba(43, 42, 39, 0.08); }
 
@@ -170,13 +206,6 @@ body {
   gap: 6px;
   min-height: 92px; /* 状態で行数が変わっても盤面が上下に跳ねないよう、高さを先に取っておく */
   text-align: center;
-}
-
-.readout__lead {
-  margin: 0;
-  font-size: 15px;
-  letter-spacing: 0.08em;
-  color: var(--text-dim);
 }
 
 /* 残り時間。離れた場所からでも読める大きさにする。
@@ -198,22 +227,12 @@ body {
   color: var(--text-dim);
 }
 
-/* 選ぶ場面では残り時間を出さない (まだ決まっていないので 0 を出す意味がない)。
-   数える場面では案内を引く */
+/* 選ぶ場面では残り時間を出さない (まだ決まっていないので 0 を出す意味がない) */
 .kiri.is-setting .readout__remain,
 .kiri.is-setting .readout__target { display: none; }
 
-.kiri.is-running .readout__lead { display: none; }
-
-/* 終わったあとは残り時間の 0:00 ではなく、区切りの時刻そのものを大きく出す */
+/* 終わったあとは残り時間の 0:00 ではなく、盤面の上の区切りの時刻の方を読ませる */
 .kiri.is-finished .readout__remain { display: none; }
-
-.kiri.is-finished .readout__lead {
-  font-size: clamp(30px, 6vw, 46px);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--text);
-}
 
 /* ============ 操作 ============ */
 

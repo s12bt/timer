@@ -11,6 +11,10 @@
        終点が壁時計の時刻なので、このタイマーには「開始」も「一時停止」も無い。
        目盛を押した時点で終わりの時刻が決まり、あとは現在時刻が追いつくのを待つだけ -->
   <main class="kiri is-setting" id="kiri">
+    <!-- 選ぶ対象は時刻なので、盤面の上に置く。目盛を hover したときの行き先もここに出るので、
+         視線が盤面から下まで往復せずに済む -->
+    <p class="lead" id="lead">終わりの時刻を選ぶ</p>
+
     <div class="stage">
       <svg class="dial" viewBox="0 0 200 200" aria-hidden="true">
         <!-- 白い文字盤を地から起こす。以降の層はすべてこの上に乗る -->
@@ -19,6 +23,9 @@
         <!-- 扇は文字盤のすぐ上。目盛にも数字にも針にも被らないよう、いちばん下の層に置く -->
         <path class="dial__wedge" id="wedge"></path>
 
+        <!-- 扇の終わり側の境界。ここが選んだ時刻。数えている間だけ出る -->
+        <line class="dial__edge" id="wedgeEdge"></line>
+
         <!-- 60 本の分目盛と 12 個の数字は JS が作る (繰り返しを HTML に書き写さない) -->
         <g class="dial__ticks" id="ticks"></g>
         <g class="dial__labels" id="labels"></g>
@@ -26,8 +33,6 @@
         <!-- 縁は目盛の後。目盛の先端をこの線で切り揃える -->
         <circle class="dial__rim" cx="100" cy="100" r="97"></circle>
 
-        <!-- 終わりの時刻。選ばれている間だけ出る -->
-        <line class="dial__target" id="targetMark"></line>
 
         <!-- 針は根元から先まで同じ太さの線。掛け時計の針は先へ向けて細らない -->
         <line class="dial__hand dial__hand--hour" id="hourHand"></line>
@@ -38,12 +43,16 @@
       <!-- 当たり判定は見た目の層とは別に持ち、最前面に置く。
            1 目盛 = 30 度の扇で、盤面のどこを押しても一番近い 5 分の目盛に付く。
            button ではなく SVG の path なので、role と tabindex でキーボードからも辿れるようにする -->
-      <svg class="hits" viewBox="0 0 200 200" id="hits"></svg>
+      <svg class="hits" viewBox="0 0 200 200" id="hits">
+        <!-- hover / focus 中の扇を二等分する線。この線の先にある目盛が、押したときに選ばれる時刻。
+             扇 1 枚は 30 度あって、どの時刻に付くのかが面だけでは読めないので、中心線で指す。
+             位置は JS が置き、当たり判定を作ったあとで末尾へ回して最前面に出す -->
+        <line class="aim" id="aimLine"></line>
+      </svg>
     </div>
 
     <!-- 盤面の外に出す。中央は針が通るので、文字を置くと時計として読めなくなる -->
     <div class="readout">
-      <p class="readout__lead" id="lead">終わりの時刻を選ぶ</p>
       <p class="readout__remain" id="remain" role="timer" aria-live="off">
         <span class="seg" id="remainValue">0:00</span>
       </p>
