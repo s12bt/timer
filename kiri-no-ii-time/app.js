@@ -395,18 +395,12 @@ el.resetBtn.addEventListener('click', toSetting);
 
 el.soundToggle.addEventListener('click', () => selectSound(!state.soundOn));
 
-// 触っていれば出る。countdown と同じく、動かすか押すかで戻す
-for (const type of ['mousemove', 'pointerdown']) {
+// 触っていれば出る。動かすか押すか、キーを叩くかで戻す。
+// キー入力を含めるのは、キーボードだけで辿っている人に操作を見せるため。
+// 引いている間もフォーカスは残っているので、これが無いと Tab の行き先が画面に出ない
+for (const type of ['mousemove', 'pointerdown', 'keydown']) {
   document.addEventListener(type, revealControls);
 }
-
-document.addEventListener('keydown', (event) => {
-  if (event.metaKey || event.ctrlKey || event.altKey) return;
-  if (event.key === 'Escape') {
-    event.preventDefault();
-    toSetting();
-  }
-});
 
 // バックグラウンドで setInterval が間引かれても、復帰時に正しい状態へ揃える。
 // 終わりが時刻で決まっているので、間引かれている間に過ぎていれば復帰した瞬間に終わる
