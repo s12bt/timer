@@ -155,6 +155,18 @@
       padding: 0 2px;
     }
 
+    /* キリのいい時間まで: システム書体の半太。countdown (700) より軽く、zen (500) より締まる。
+       この一枚だけ数字が「残り時間」ではなく「終わりの時刻」なので、見本も時刻の形で出す */
+    .timer-row__face--kiri {
+      font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", system-ui, sans-serif;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: #2b2a27;
+    }
+
+    .timer-row__face--kiri .timer-row__colon { top: -0.015em; }
+
     @media (max-width: 480px) {
       .page { padding-top: 48px; }
       .timer-row { gap: 16px; padding: 20px 2px; }
@@ -185,6 +197,16 @@
             <p class="timer-row__desc">A quiet timer for reflection. The ring recedes and a drop falls every fifteen seconds.</p>
           </div>
           <span class="timer-row__face timer-row__face--zen" aria-hidden="true">15<span class="timer-row__colon">:</span>00</span>
+        </a>
+      </li>
+      <li>
+        <a class="timer-row" href="kiri-no-ii-time/">
+          <div class="timer-row__body">
+            <!-- 名前だけが日本語なので、lang はこの見出しに付ける (説明文と器は英語のまま) -->
+            <h2 class="timer-row__name" lang="ja">キリのいい時間まで</h2>
+            <p class="timer-row__desc">Pick a round time on the clock face. The wedge shrinks until the clock catches up.</p>
+          </div>
+          <span class="timer-row__face timer-row__face--kiri" aria-hidden="true">18<span class="timer-row__colon">:</span>00</span>
         </a>
       </li>
     </ul>
