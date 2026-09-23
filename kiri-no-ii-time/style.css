@@ -1,0 +1,278 @@
+/* 「じゃあキリよく 18:00 まで」をそのまま道具にしたタイマー。
+   countdown が長さを測る道具なのに対して、これは壁時計の時刻に合わせる道具。
+   机の真ん中に置いて複数人がチラ見する前提なので、残りは数字より先に面で分かるようにしてある。
+
+   テーマは持たずライト固定 (前提: テーマ対応は各タイマーの任意)。
+   地は countdown の青寄りの白 (#f4f6fb) とも zen の温白 (#f7f6f3) とも変えて、温度のない白にする。
+   この道具は集中でも高揚でもなく「区切り」が主題なので、色に寄る理由がない */
+:root {
+  color-scheme: light;
+  --bg: #eeece8; /* 文字盤が白になったので、地は一段落として盤を浮かせる */
+  --text: #2b2a27;
+  --text-dim: rgba(43, 42, 39, 0.45);
+  --line: rgba(43, 42, 39, 0.14);
+  --line-faint: rgba(43, 42, 39, 0.07);
+  /* 扇。離れた場所から面積として読ませるので、zen の弧 (細い線) より濃い側に置く。
+     これより薄いと 2m 離れた時点で消え、これより濃いと針と目盛が読めなくなる */
+  --wedge: rgba(43, 42, 39, 0.17);
+  --font-display: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+[hidden] { display: none !important; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  touch-action: manipulation;
+}
+
+.kiri {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 32px 20px;
+}
+
+/* ============ 盤面 ============ */
+
+.stage {
+  position: relative;
+  width: min(66vmin, 440px);
+  aspect-ratio: 1;
+  flex: none;
+}
+
+.dial,
+.hits {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* 当たり判定は最前面。見た目の層 (.dial) には一切触らせない */
+.hits { z-index: 2; }
+
+.dial__face { fill: #ffffff; }
+
+/* 縁は 1 本の線だけで、枠としては立てない。掛け時計の黒縁は物の厚みが作るものなので、
+   平らな画面で太さだけ真似ると輪郭が重くなる */
+.dial__rim {
+  fill: none;
+  stroke: rgba(43, 42, 39, 0.58);
+  stroke-width: 1.1;
+}
+
+/* 現在時刻から終わりの時刻までを塗る。
+   数えている間は扇の始まり側 (現在時刻) が進むので、終わりに向かって面積が減っていく。
+   選ぶときと数えるときで同じ形を使うのが、この道具の芯 */
+.dial__wedge {
+  fill: var(--wedge);
+  stroke: none;
+}
+
+/* 分目盛 60 本。縁との間には余白を空け、内側へ向けて長く伸ばす。
+   掛け時計の目盛は縁に接しておらず、白い余白の帯が 1 本ぶん外にある。
+   端は切り落とし (butt)。round にすると 60 本ぶんの丸みが帯になって、もう 1 本の輪郭が生まれる */
+.dial__tick {
+  stroke: rgba(43, 42, 39, 0.5);
+  stroke-width: 0.45;
+}
+
+/* 5 分ごと。押せる位置はここ。太さではなく長さで立たせる
+   (掛け時計の目盛は 60 本ともほぼ同じ細さで、違うのは丈だけ) */
+.dial__tick--major {
+  stroke: rgba(43, 42, 39, 0.72);
+  stroke-width: 0.8;
+}
+
+/* 時の数字。線幅が一定の細いサンセリフを大きく置く。
+   掛け時計の文字盤はセリフ体ではなく、ヘアラインの太さが変わらない書体で、
+   大きさだけで存在を持たせている。線に強弱を付けると別の時代の時計になる */
+.dial__label {
+  fill: rgba(43, 42, 39, 0.85);
+  font-family: "Helvetica Neue", Helvetica, "Segoe UI", Arial, sans-serif;
+  font-size: 19px;
+  font-weight: 200; /* Helvetica Neue UltraLight。無い環境では Light〜Regular に落ちる */
+  letter-spacing: -0.02em;
+  text-anchor: middle;
+  dominant-baseline: central;
+  user-select: none;
+}
+
+/* 終わりの時刻。5 分目盛の 1 本に重ねて、そこだけを濃く太くする。
+   針と同じ中心から出す形にすると、3 本目の針にしか見えない */
+.dial__target {
+  stroke: var(--text);
+  stroke-width: 2.2;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.kiri.is-running .dial__target,
+.kiri.is-finished .dial__target { opacity: 1; }
+
+/* ============ 針 ============ */
+
+/* 秒針は置かない。常に動き続けるものを画面に置くと、置きっぱなしの道具では視線を奪い続ける。
+   ここで動いてよいのは扇が減ることだけ。
+   針は根元から先まで同じ太さ。先へ細らせると、掛け時計ではなく腕時計の針になる */
+.dial__hand { stroke: var(--text); }
+
+/* 先端は切り落としたまま。尖らせない。round にすると丸みが付いて、指している目盛が曖昧になる */
+.dial__hand--hour { stroke-width: 2.5; }
+.dial__hand--minute { stroke-width: 2.1; }
+
+.dial__pin { fill: var(--text); }
+
+/* ============ 当たり判定 ============ */
+
+/* 1 目盛 30 度の扇。中心まで含めるので、盤面のどこを押しても必ずどれかに入る */
+.hit {
+  fill: transparent;
+  cursor: pointer;
+  outline: none;
+}
+
+/* 押す前に結果を見せる。hover した扇をごく薄く塗り、同時に選ばれる時刻を盤面の下に出す
+   (プレビューの文字は JS が .readout__lead に差し替える) */
+.hit:hover { fill: rgba(43, 42, 39, 0.05); }
+
+.hit:focus-visible { fill: rgba(43, 42, 39, 0.08); }
+
+/* 数えている間だけ盤面を表示に回す。誤って触って終点が飛ぶのを防ぐため。
+   終わったあとは押せる側に戻す。「18:00 まで」の次に「じゃあ 18:30 まで」が来るのがこの道具の常なので、
+   そこに「選び直す」を一度挟ませない */
+.kiri.is-running .hits { display: none; }
+
+/* ============ 文字 ============ */
+
+.readout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-height: 92px; /* 状態で行数が変わっても盤面が上下に跳ねないよう、高さを先に取っておく */
+  text-align: center;
+}
+
+.readout__lead {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+/* 残り時間。離れた場所からでも読める大きさにする。
+   書体はシステムのもの (zen のように自前配信する書体を増やす理由がこの画面には無い) */
+.readout__remain {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(46px, 9vw, 76px);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.readout__target {
+  margin: 0;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+/* 選ぶ場面では残り時間を出さない (まだ決まっていないので 0 を出す意味がない)。
+   数える場面では案内を引く */
+.kiri.is-setting .readout__remain,
+.kiri.is-setting .readout__target { display: none; }
+
+.kiri.is-running .readout__lead { display: none; }
+
+/* 終わったあとは残り時間の 0:00 ではなく、区切りの時刻そのものを大きく出す */
+.kiri.is-finished .readout__remain { display: none; }
+
+.kiri.is-finished .readout__lead {
+  font-size: clamp(30px, 6vw, 46px);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+/* ============ 操作 ============ */
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  min-height: 62px;
+}
+
+.reset {
+  padding: 8px 20px;
+  border: 1px solid var(--line-faint);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.reset:hover {
+  color: var(--text);
+  border-color: var(--line);
+}
+
+/* 選ぶ場面には出口が要らない (まだ何も選ばれていない) */
+.kiri.is-setting .reset { visibility: hidden; }
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.check input { accent-color: rgba(43, 42, 39, 0.5); }
+
+:focus-visible {
+  outline: 1px solid var(--line);
+  outline-offset: 3px;
+}
+
+/* 横画面。盤面と文字を左右に分けて、盤面の大きさを保つ */
+@media (orientation: landscape) and (max-height: 560px) {
+  .kiri {
+    flex-direction: row;
+    justify-content: center;
+    gap: 44px;
+  }
+
+  .stage { width: min(72vmin, 360px); }
+
+  .readout { min-height: 0; }
+
+  .controls { position: absolute; right: 24px; bottom: 20px; gap: 10px; }
+}

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>キリのいい時間まで</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 画面は 1 枚。選ぶ場面と数える場面は同じ盤面の状態違いで、時計そのものは最後まで止めない。
+       終点が壁時計の時刻なので、このタイマーには「開始」も「一時停止」も無い。
+       目盛を押した時点で終わりの時刻が決まり、あとは現在時刻が追いつくのを待つだけ -->
+  <main class="kiri is-setting" id="kiri">
+    <div class="stage">
+      <svg class="dial" viewBox="0 0 200 200" aria-hidden="true">
+        <!-- 白い文字盤を地から起こす。以降の層はすべてこの上に乗る -->
+        <circle class="dial__face" cx="100" cy="100" r="97"></circle>
+
+        <!-- 扇は文字盤のすぐ上。目盛にも数字にも針にも被らないよう、いちばん下の層に置く -->
+        <path class="dial__wedge" id="wedge"></path>
+
+        <!-- 60 本の分目盛と 12 個の数字は JS が作る (繰り返しを HTML に書き写さない) -->
+        <g class="dial__ticks" id="ticks"></g>
+        <g class="dial__labels" id="labels"></g>
+
+        <!-- 縁は目盛の後。目盛の先端をこの線で切り揃える -->
+        <circle class="dial__rim" cx="100" cy="100" r="97"></circle>
+
+        <!-- 終わりの時刻。選ばれている間だけ出る -->
+        <line class="dial__target" id="targetMark"></line>
+
+        <!-- 針は根元から先まで同じ太さの線。掛け時計の針は先へ向けて細らない -->
+        <line class="dial__hand dial__hand--hour" id="hourHand"></line>
+        <line class="dial__hand dial__hand--minute" id="minuteHand"></line>
+        <circle class="dial__pin" cx="100" cy="100" r="2.2"></circle>
+      </svg>
+
+      <!-- 当たり判定は見た目の層とは別に持ち、最前面に置く。
+           1 目盛 = 30 度の扇で、盤面のどこを押しても一番近い 5 分の目盛に付く。
+           button ではなく SVG の path なので、role と tabindex でキーボードからも辿れるようにする -->
+      <svg class="hits" viewBox="0 0 200 200" id="hits"></svg>
+    </div>
+
+    <!-- 盤面の外に出す。中央は針が通るので、文字を置くと時計として読めなくなる -->
+    <div class="readout">
+      <p class="readout__lead" id="lead">終わりの時刻を選ぶ</p>
+      <p class="readout__remain" id="remain" role="timer" aria-live="off">
+        <span class="seg" id="remainValue">0:00</span>
+      </p>
+      <p class="readout__target" id="targetLabel"></p>
+    </div>
+
+    <div class="controls">
+      <button class="reset" id="resetBtn" type="button">選び直す</button>
+
+      <label class="check">
+        <input type="checkbox" id="soundCheck" checked>
+        <span>終わったら音を鳴らす</span>
+      </label>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
