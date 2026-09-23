@@ -116,8 +116,13 @@
        大きさだけは一覧の都合で揃える (本体はどちらも画面幅に追従する clamp を使っている)。
        地の陰影は持ち込まない。zen の text-shadow は温白 (#f7f6f3) の上で光る作りなので、
        白地のここでは光の側が効かず、影だけが汚れとして残る */
+    /* 右カラムは幅を固定する。見本の幅が行ごとに違うと、左の説明文の折り返し位置がずれる。
+       中身 (数字でも図形でも) は右端に寄せて、縦の線を 1 本に見せる */
     .timer-row__face {
       flex: none;
+      width: 120px;
+      text-align: right;
+      white-space: nowrap;
       font-size: 40px;
       font-variant-numeric: tabular-nums;
       line-height: 1;
@@ -132,12 +137,15 @@
       color: #131a2b;
     }
 
-    /* zen: Manrope の中庸。静けさを保ったまま芯を持たせる太さ */
+    /* zen: Manrope の中庸。静けさを保ったまま芯を持たせる太さ。
+       ここだけ本体には無いぼかしを一段かける (書体と色の写しからは外れるが、
+       あの画面の静けさは数字の輪郭の緩さに出ているため) */
     .timer-row__face--zen {
+      filter: blur(1.1px);
       font-family: Manrope, "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
         "Helvetica Neue", system-ui, sans-serif;
       font-weight: 500;
-      letter-spacing: 0.02em;
+      letter-spacing: -0.02em;
       color: rgba(63, 58, 51, 0.52);
     }
 
@@ -155,29 +163,46 @@
       padding: 0 2px;
     }
 
-    /* キリのいい時間まで: システム書体の半太。countdown (700) より軽く、zen (500) より締まる。
-       この一枚だけ数字が「残り時間」ではなく「終わりの時刻」なので、見本も時刻の形で出す */
-    .timer-row__face--kiri {
-      font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-        "Helvetica Neue", system-ui, sans-serif;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      color: #2b2a27;
+    /* キリのいい時間まで: ここだけ数字ではなく盤面そのものを見本にする。
+       この道具の顔は数字ではなく時計だから、そちらを写す。
+       この大きさでは 60 本の目盛も 12 個の数字も潰れるので、構造 (白い盤・縁・目盛・針) だけ残して要素を絞る。
+       線幅は本体の比率をそのまま縮めると消えてしまうため、この大きさで見える太さに起こしてある */
+    .kiri-dial {
+      display: block;
+      margin: 0 auto; /* 数字は右端に揃うが、図形は円なので右カラムの中央に置く */
+      width: 60px;
+      height: 60px;
     }
 
-    .timer-row__face--kiri .timer-row__colon { top: -0.015em; }
+    .kiri-dial__face { fill: #ffffff; }
+
+    .kiri-dial__rim {
+      fill: none;
+      stroke: rgba(58, 58, 60, 0.58);
+      stroke-width: 4;
+    }
+
+    .kiri-dial__ticks line {
+      stroke: rgba(58, 58, 60, 0.72);
+      stroke-width: 4.5;
+    }
+
+    .kiri-dial__hand { stroke: #3a3a3c; }
+    .kiri-dial__hand--hour { stroke-width: 9; }
+    .kiri-dial__hand--minute { stroke-width: 7; }
+    .kiri-dial__pin { fill: #3a3a3c; }
 
     @media (max-width: 480px) {
       .page { padding-top: 48px; }
       .timer-row { gap: 16px; padding: 20px 2px; }
-      .timer-row__face { font-size: 32px; }
+      .timer-row__face { width: 96px; font-size: 32px; }
+      .kiri-dial { width: 48px; height: 48px; }
     }
   </style>
 </head>
 <body>
   <main class="page">
     <h1 class="page__title">Timers</h1>
-    <p class="page__lead">A collection of timers that run in your browser.</p>
 
     <!-- タイマーを追加したら、ここに li を 1 つ足す -->
     <ul class="timers">
@@ -185,7 +210,7 @@
         <a class="timer-row" href="countdown/">
           <div class="timer-row__body">
             <h2 class="timer-row__name">Countdown</h2>
-            <p class="timer-row__desc">Set minutes and seconds, then count down to zero with an alarm.</p>
+            <p class="timer-row__desc">シンプルなカウントダウンタイマー。時刻を大きく表示する</p>
           </div>
           <span class="timer-row__face timer-row__face--countdown" aria-hidden="true">05<span class="timer-row__colon">:</span>00</span>
         </a>
@@ -194,7 +219,7 @@
         <a class="timer-row" href="zen/">
           <div class="timer-row__body">
             <h2 class="timer-row__name">Zen</h2>
-            <p class="timer-row__desc">A quiet timer for reflection. The ring recedes and a drop falls every fifteen seconds.</p>
+            <p class="timer-row__desc">振り返りの時などに使用できる静かなカウントダウンタイマー</p>
           </div>
           <span class="timer-row__face timer-row__face--zen" aria-hidden="true">15<span class="timer-row__colon">:</span>00</span>
         </a>
@@ -204,9 +229,24 @@
           <div class="timer-row__body">
             <!-- 名前だけが日本語なので、lang はこの見出しに付ける (説明文と器は英語のまま) -->
             <h2 class="timer-row__name" lang="ja">キリのいい時間まで</h2>
-            <p class="timer-row__desc">Pick a round time on the clock face. The wedge shrinks until the clock catches up.</p>
+            <p class="timer-row__desc">「13:45までやろう」みたいな、キリのいい時間までを簡単に測るカウントダウンタイマー</p>
           </div>
-          <span class="timer-row__face timer-row__face--kiri" aria-hidden="true">18<span class="timer-row__colon">:</span>00</span>
+          <span class="timer-row__face timer-row__face--kiri" aria-hidden="true">
+            <!-- 針は 13:20 を指している -->
+            <svg class="kiri-dial" viewBox="0 0 200 200">
+            <circle class="kiri-dial__face" cx="100" cy="100" r="97" />
+            <g class="kiri-dial__ticks">
+              <line x1="100.0" y1="22.0" x2="100.0" y2="10.0" />
+              <line x1="178.0" y1="100.0" x2="190.0" y2="100.0" />
+              <line x1="100.0" y1="178.0" x2="100.0" y2="190.0" />
+              <line x1="22.0" y1="100.0" x2="10.0" y2="100.0" />
+            </g>
+            <circle class="kiri-dial__rim" cx="100" cy="100" r="97" />
+            <line class="kiri-dial__hand kiri-dial__hand--hour" x1="100" y1="100" x2="130.85" y2="63.23" />
+            <line class="kiri-dial__hand kiri-dial__hand--minute" x1="100" y1="100" x2="162.35" y2="136.0" />
+            <circle class="kiri-dial__pin" cx="100" cy="100" r="5" />
+          </svg>
+          </span>
         </a>
       </li>
     </ul>
