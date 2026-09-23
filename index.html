@@ -104,6 +104,16 @@
       color: var(--text-dim);
     }
 
+    /* 2 行目は「どんなときに使うか」。見た目は 1 行目と同じにして、行送りだけで続ける。
+       濃さや大きさを落とすと補足に見えるが、ここは 2 行で 1 つの説明なので、
+       段落が折り返したのと同じ連なりにする */
+    .timer-row__use {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-dim);
+    }
+
     /* ============ 数字 ============ */
 
     /* ここだけは各タイマーの顔を見せる場所。書体・太さ・字間・色は本体から写している。
@@ -215,6 +225,7 @@
           <div class="timer-row__body">
             <h2 class="timer-row__name">Zen</h2>
             <p class="timer-row__desc">波紋が広がる静かなタイマー</p>
+            <p class="timer-row__use">振り返りや、考えごとをまとめたいときに</p>
           </div>
           <span class="timer-row__face timer-row__face--zen" aria-hidden="true">15<span class="timer-row__colon">:</span>00</span>
         </a>
@@ -223,7 +234,8 @@
         <a class="timer-row" href="kiri-no-ii-time/">
           <div class="timer-row__body">
             <h2 class="timer-row__name">キリのいい時間まで</h2>
-            <p class="timer-row__desc">「13:45まで」のようなキリのいい時間を、簡単にタイマーにセット</p>
+            <p class="timer-row__desc">キリのいい時間までを、簡単にタイマーにセット</p>
+            <p class="timer-row__use">何分まで休憩、何分までやろう、時刻ベースで区切りを付けたいときに</p>
           </div>
           <span class="timer-row__face timer-row__face--kiri" aria-hidden="true">
             <!-- 針は 13:20 を指している -->
