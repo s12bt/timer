@@ -39,7 +39,11 @@ const state = {
 let tickId = null;
 let idleTimer = null;
 let audioCtx = null;
-let labelMinute = -1; // 読み上げ用のラベルを作り直した分。毎 tick 12 個書き換えないための目印
+// 読み上げ用のラベルを作り直した「分」。現在時刻ではなく LEAD_MS を足した時刻で数えるので、
+// 行き先が次の時間へ送られる瞬間 (毎分 LEAD_MS 前) にちょうど作り直される。
+// epoch からの通算分なので、時や日をまたいでも取り違えない
+let labelKey = -1;
+let aimingStep = null; // 指している目盛。境界をまたいだときに行き先を出し直すために覚えておく
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -144,12 +148,17 @@ function buildDial() {
 // 読み上げ用のラベルは行き先の時刻そのものにする (「10 分の目盛」ではなく「18:10 まで」)。
 // 分をまたいだときだけ作り直す
 function refreshHitLabels() {
-  const minute = new Date().getMinutes();
-  if (minute === labelMinute) return;
-  labelMinute = minute;
-  for (const hit of el.hits.children) {
+  const key = Math.floor((Date.now() + LEAD_MS) / 60000);
+  if (key === labelKey) return;
+  labelKey = key;
+  // children には狙いの線も混ざっているので、当たり判定だけを拾う
+  for (const hit of el.hits.querySelectorAll('.hit')) {
     const at = new Date(targetForStep(Number(hit.dataset.step)));
     hit.setAttribute('aria-label', hhmm(at) + ' まで');
+  }
+  // 指したまま境界をまたぐと、盤面の上の一行が古い行き先のまま残る
+  if (aimingStep !== null && phase() === 'setting') {
+    setLead(hhmm(new Date(targetForStep(aimingStep))), 'まで');
   }
 }
 
@@ -287,8 +296,12 @@ function choose(step) {
   // 大きな数字は残り時間なので、その意味を一語だけ下に添える
   el.noteLabel.textContent = 'のこり';
   el.hits.classList.remove('is-aiming'); // 数え始めたら狙いの線は用済み
+  aimingStep = null;
   setPhase('running');
   revealControls();
+  // 目盛はこのあと画面から外れる。キーボードで選んだときにフォーカスが body へ落ちないよう、
+  // この場面で唯一押せるものへ移す
+  el.resetBtn.focus();
   render();
 }
 
@@ -305,6 +318,7 @@ function finish() {
 }
 
 function toSetting() {
+  aimingStep = null;
   setPhase('setting');
   revealControls();
   state.targetAt = 0;
@@ -339,6 +353,7 @@ el.hits.addEventListener('click', (event) => {
 function preview(hit) {
   if (phase() !== 'setting') return;
   const step = Number(hit.dataset.step);
+  aimingStep = step;
   setLead(hhmm(new Date(targetForStep(step))), 'まで');
   line(el.aimLine, step * 30, 0, 96);
   el.hits.classList.add('is-aiming');
@@ -346,6 +361,7 @@ function preview(hit) {
 
 function clearPreview() {
   if (phase() !== 'setting') return;
+  aimingStep = null;
   setLead('何分までやる？');
   el.hits.classList.remove('is-aiming');
 }
