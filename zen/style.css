@@ -241,13 +241,14 @@ body::after {
 /* 設定画面の Reset (.chip.chip--quiet) と同じ作り。枠線は hover のときだけ現れる */
 .whisper__reset {
   display: none;
-  padding: 6px 14px;
+  min-height: 44px;
+  padding: 0 18px;
   border: 1px solid transparent;
   border-radius: 999px;
   background: transparent;
   color: inherit;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 15px;
   letter-spacing: 0.04em;
   cursor: pointer;
   pointer-events: auto; /* 行自体は透過させ、この一語だけ押せるようにする */
@@ -291,17 +292,29 @@ body::after {
   gap: 8px;
 }
 
+/* 指で押す前提の大きさにする。高さ 44px は指先で確実に押せる最小の目安 (countdown と同じ) */
 .chip {
-  padding: 6px 14px;
+  min-height: 44px;
+  padding: 0 18px;
   border: 1px solid var(--line-faint);
   border-radius: 999px;
   background: transparent;
   color: var(--text-dim);
   font-family: inherit;
-  font-size: 14px;
+  font-size: 15px;
   letter-spacing: 0.04em;
   cursor: pointer;
   transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+/* 幅の狭い画面では 3 列 × 2 行の格子に並べる。
+   折り返しに任せると 2 行目に端数が落ち、押す場所の並びが読みにくい (countdown と同じ) */
+@media (max-width: 480px) {
+  .presets {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    width: min(100% - 40px, 340px);
+  }
 }
 
 .chip:hover {
