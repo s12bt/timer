@@ -613,8 +613,10 @@ body:has(.kiri.is-idle) .corner-controls {
   outline-offset: 3px;
 }
 
-/* 背の低い横画面 (3 カラムのとき)。出口を盤面の下に置くと盤面が縮むので、右下の隅へ逃がす */
-@media (orientation: landscape) and (max-height: 560px) and (min-width: 721px) {
+/* 背の低い横画面 (3 カラムのとき)。出口を盤面の下に置くと盤面が縮むので、右下の隅へ逃がす。
+   幅の条件は下の 1 列の条件 (max-width: 720px) のちょうど裏側。min-width: 721px にすると、
+   ズームなどで幅が 720〜721px の小数になったときにどちらにも当たらない */
+@media (orientation: landscape) and (max-height: 560px) and (width > 720px) {
   .kiri { grid-template-areas: "lead stage readout"; }
 
   .controls { position: absolute; right: 24px; bottom: 20px; gap: 10px; }
