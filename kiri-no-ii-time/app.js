@@ -459,11 +459,17 @@ el.hits.addEventListener('pointerup', (event) => {
   else choose(step);
 });
 
-el.hits.addEventListener('pointercancel', (event) => {
+// ブラウザが操作を打ち切ったとき。捕捉だけが外れた場合も同じく取り消す。
+// ここで戻さないと touchPointer が残り、以後のタッチをリロードまで全部無視してしまう。
+// 指を離したときも捕捉は外れるが、pointerup で先に touchPointer を戻しているので何もしない
+function cancelTouch(event) {
   if (event.pointerId !== touchPointer) return;
   touchPointer = null;
   clearPreview();
-});
+}
+
+el.hits.addEventListener('pointercancel', cancelTouch);
+el.hits.addEventListener('lostpointercapture', cancelTouch);
 
 el.hits.addEventListener('mouseover', (event) => {
   const hit = event.target.closest('.hit');
