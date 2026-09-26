@@ -434,7 +434,9 @@ body:has(.kiri.is-idle) .corner-controls {
 .readout__remain {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(46px, 9vw, 76px);
+  /* 3 カラムのときは右カラムに収まる大きさ。時計の大きさが画面幅で決まる帯 (おおよそ 720〜960px) では
+     右カラムが 170px 前後しか取れないので、画面幅に合わせて縮める */
+  font-size: clamp(40px, 6vw, 76px);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.05em;
@@ -644,6 +646,8 @@ body:has(.kiri.is-idle) .corner-controls {
   /* 添えの語も同じく、盤面が真上にあるので流れの中に置く。
      場面が変わっても盤面が動かないよう、残り時間の欄の高さは常に同じにする */
   .readout { min-height: 92px; }
+  /* 1 列のときは横幅を丸ごと使えるので、大きめに出す */
+  .readout__remain { font-size: clamp(46px, 9vw, 76px); }
   .readout__note { position: static; }
   /* 添えの語が流れの中にあるので、押せる範囲は欄の上端から取る */
   .remain-toggle { top: -6px; }
