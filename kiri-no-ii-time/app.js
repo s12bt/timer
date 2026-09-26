@@ -202,8 +202,9 @@ function fitMemo() {
 function setRemainHidden(hidden) {
   state.remainHidden = hidden;
   el.kiri.classList.toggle('is-remain-hidden', hidden);
+  // 名前は「残り時間を隠す」で固定し、いまの状態は aria-pressed だけで伝える
+  // (名前も切り替えると、状態が二重に、しかも逆向きに読み上げられる)
   el.remainToggle.setAttribute('aria-pressed', String(hidden));
-  el.remainToggle.setAttribute('aria-label', hidden ? '残り時間を表示' : '残り時間を隠す');
 }
 
 function setPhase(name) {

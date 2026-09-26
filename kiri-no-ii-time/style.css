@@ -25,10 +25,10 @@
   --mark: #d76e57;
   /* 終わったときの縁だけ、合図として一段濃い側を使う */
   --mark-strong: #cf5a3e;
-  /* 数字だけこの書体。SF Pro Display は日本語のグリフを持たないので、
-     案内文は次の候補 (游ゴシック) が拾う。同じ要素の中で数字と日本語が書き分かる */
   /* 「◯◯まで」の時刻の大きさ。書き置きも同じ大きさで並べる */
   --lead-size: clamp(32px, 3.6vw, 48px);
+  /* 数字だけこの書体。SF Pro Display は日本語のグリフを持たないので、
+     案内文は次の候補 (游ゴシック) が拾う。同じ要素の中で数字と日本語が書き分かる */
   --font-display: "SF Pro Display", "游ゴシック体", YuGothic, "游ゴシック Medium",
     "Yu Gothic Medium", "游ゴシック", "Yu Gothic", メイリオ, "Hiragino sans", sans-serif;
 }
@@ -195,7 +195,6 @@ body:has(.kiri.is-idle) .corner-controls {
   font-size: 24px;
 }
 
-/* 3 カラムのときは、左右の文字のぶん (片側およそ 240px) を先に確保してから盤面の大きさを決める */
 /* ============ 書き置き ============ */
 
 /* 空のときは鉛筆付きの枠で、書けることを示す。枠の形は「時間を選び直す」と揃える。
@@ -302,6 +301,7 @@ body:has(.kiri.is-idle) .corner-controls {
 /* 選ぶ場面では出さない。場所は残して、選んだ瞬間に上の文字が動かないようにする */
 .kiri.is-setting .memo { visibility: hidden; }
 
+/* 3 カラムのときは、左右の文字のぶん (片側およそ 240px) を先に確保してから盤面の大きさを決める */
 .stage {
   position: relative;
   width: min(72vmin, 480px, calc(100vw - 480px));
@@ -526,7 +526,9 @@ body:has(.kiri.is-idle) .corner-controls {
 .remain-toggle__show { display: none; }
 
 /* 触れている間はアイコンを出す。表示中は塗らず、アイコンだけで押せることを示す。
-   操作が引いている間は反応させない */
+   操作が引いている間は反応させない。
+   ちょっとした隠し機能なので、タッチ端末でも普段は出さない。
+   タッチ端末では触れた要素に hover が付くので、押したあとは同じ見え方になる */
 .kiri.is-running:not(.is-idle) .remain-toggle:hover svg,
 .kiri.is-running .remain-toggle:focus-visible svg { opacity: 0.4; }
 
@@ -555,9 +557,6 @@ body:has(.kiri.is-idle) .corner-controls {
 .kiri.is-remain-hidden .remain-toggle:focus-visible .remain-toggle__hide { display: none; }
 .kiri.is-remain-hidden:not(.is-idle) .remain-toggle:hover .remain-toggle__show,
 .kiri.is-remain-hidden .remain-toggle:focus-visible .remain-toggle__show { display: block; }
-
-/* ちょっとした隠し機能なので、タッチ端末でも普段は出さない。
-   タッチ端末では触れた要素に hover が付くので、押したあとは同じ見え方になる */
 
 /* 動きを減らす設定では明滅させず、色だけで示す */
 @media (prefers-reduced-motion: reduce) {
@@ -614,16 +613,17 @@ body:has(.kiri.is-idle) .corner-controls {
   outline-offset: 3px;
 }
 
-/* 背の低い横画面。出口を盤面の下に置くと盤面が縮むので、右下の隅へ逃がす */
-@media (orientation: landscape) and (max-height: 560px) {
+/* 背の低い横画面 (3 カラムのとき)。出口を盤面の下に置くと盤面が縮むので、右下の隅へ逃がす */
+@media (orientation: landscape) and (max-height: 560px) and (min-width: 721px) {
   .kiri { grid-template-areas: "lead stage readout"; }
 
   .controls { position: absolute; right: 24px; bottom: 20px; gap: 10px; }
 }
 
-/* 幅の狭い縦長の画面 (スマホの縦持ち) だけ、上から 終わりの時刻 / 盤面 / 残り時間 と縦に積む。
-   横に 3 つ並べると盤面が小さくなりすぎる */
-@media (orientation: portrait) and (max-width: 720px) {
+/* 幅の狭い画面では、上から 終わりの時刻 / 盤面 / 残り時間 と縦に積む。
+   向きは問わない。横長でも幅が狭いと、3 カラムでは左右の文字のぶんを取ったあとに盤面がほとんど残らない。
+   背の低い横画面 (小さめのスマホの横持ちなど) では縦にスクロールするが、盤面が潰れるよりよい */
+@media (max-width: 720px) {
   .kiri {
     grid-template-columns: auto;
     grid-template-areas:
