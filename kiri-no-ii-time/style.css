@@ -99,9 +99,11 @@ body:has(.kiri.is-idle) .corner-controls {
 /* 操作が引いている間はマウスポインタも消す。数字と盤面だけの画面にする */
 .kiri.is-idle { cursor: none; }
 
-/* 右上の操作類。位置はここだけで持つ */
+/* 右上の操作類。位置はここだけで持つ。
+   画面ではなくページの右上に置く。幅の狭い画面では縦にスクロールするので、
+   画面に固定すると下の文字や盤面の上に重なったまま付いてくる */
 .corner-controls {
-  position: fixed;
+  position: absolute;
   top: 20px;
   right: 20px;
   z-index: 2;
@@ -164,7 +166,8 @@ body:has(.kiri.is-idle) .corner-controls {
   text-align: right;
 }
 
-.stage { grid-area: stage; }
+/* 1 列のときは列の幅が盤面より広くなる (書き置きの欄が幅いっぱいに広がるため)。列の中で中央に置く */
+.stage { grid-area: stage; justify-self: center; }
 .readout { grid-area: readout; justify-self: start; align-items: flex-start; text-align: left; }
 .controls { grid-area: controls; }
 
@@ -634,8 +637,10 @@ body:has(.kiri.is-idle) .corner-controls {
       "readout"
       "controls";
     justify-content: center;
-    /* 書き置きが複数行になると中身が画面の高さを超え、上端から詰まる。
-       右上の音の切り替え (top 20px + 高さ 46px) に被らないよう、そのぶん上を空ける */
+    /* 画面の上下中央ではなく上から詰めて置く。縦に長い画面で中央に置くと、
+       見出しが画面の中ほどまで下がり、下に大きく空いた余白よりも上の空きが目立つ */
+    align-content: start;
+    /* 右上の音の切り替え (top 20px + 高さ 46px) に被らないよう、そのぶん上を空ける */
     padding-top: 84px;
   }
 
@@ -660,7 +665,10 @@ body:has(.kiri.is-idle) .corner-controls {
   /* 添えの語が流れの中にあるので、押せる範囲は欄の上端から取る */
   .remain-toggle { top: -6px; }
 
-  .kiri { --lead-size: 48px; }
+  /* 「何分までやる？」(7 文字 + 字間) が 1 行に収まる大きさまで下げる。
+     2 行になると、時計盤に触れて時刻 (1 行) に替わるたびに高さが変わり、盤面が上下に揺れる。
+     8 で割るのは、7 文字ぶんに字間 (0.08em × 7) と余裕を足した幅 */
+  .kiri { --lead-size: min(48px, calc((100vw - 40px) / 8)); }
 
   .stage { width: min(72vmin, 480px); }
 }
