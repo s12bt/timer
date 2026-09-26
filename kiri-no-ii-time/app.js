@@ -32,6 +32,7 @@ const el = {
   noteLabel: document.getElementById('noteLabel'),
   resetBtn: document.getElementById('resetBtn'),
   soundToggle: document.getElementById('soundToggle'),
+  memoInput: document.getElementById('memoInput'),
 };
 
 const state = {
@@ -180,8 +181,20 @@ function revealControls() {
   el.kiri.classList.remove('is-idle');
   clearTimeout(idleTimer);
   if (phase() === 'running') {
-    idleTimer = setTimeout(() => el.kiri.classList.add('is-idle'), IDLE_MS);
+    idleTimer = setTimeout(() => {
+      // 書き置きを書いている途中は引っ込めない。手が止まっても考えているだけのことがある。
+      // 書き終えてフォーカスが外れたときに、改めて時計を張り直す
+      if (document.activeElement === el.memoInput) return;
+      el.kiri.classList.add('is-idle');
+    }, IDLE_MS);
   }
+}
+
+// 書き置きの高さを中身の行数に合わせる。textarea は既定では高さが中身に追従しない
+// (field-sizing: content が効くブラウザではこれが無くても伸びるが、効かないブラウザのために持つ)
+function fitMemo() {
+  el.memoInput.style.height = 'auto';
+  el.memoInput.style.height = el.memoInput.scrollHeight + 'px';
 }
 
 function setPhase(name) {
@@ -297,7 +310,7 @@ function choose(step) {
   // 終わりの時刻は選ぶ前も選んだ後も盤面の上。hover のプレビューがそのまま居座る形にして、
   // 押した瞬間に文字が下へ飛ばないようにする
   setLead(hhmm(at), 'まで');
-  // 大きな数字は残り時間なので、その意味を一語だけ下に添える
+  // 大きな数字は残り時間なので、その意味を一語だけ上に添える
   el.noteLabel.textContent = 'のこり';
   el.hits.classList.remove('is-aiming'); // 数え始めたら狙いの線は用済み
   aimingStep = null;
@@ -313,7 +326,7 @@ function finish() {
   state.finished = true;
   setPhase('finished');
   revealControls();
-  // 上の「◯◯まで」は据え置き。下は 0:00 で止めて、添えの語だけを終わりの合図に差し替える
+  // 「◯◯まで」は据え置き。残り時間は 0:00 で止めて、添えの語だけを終わりの合図に差し替える
   el.remainValue.textContent = mmss(0);
   el.noteLabel.textContent = '時間になりました';
   el.wedge.setAttribute('d', '');
@@ -330,6 +343,10 @@ function toSetting() {
   el.wedge.setAttribute('d', '');
   setLead(ASK);
   el.noteLabel.textContent = '';
+  // 書き置きはその区切りのためのもの。次の区切りへは持ち越さない
+  el.memoInput.value = '';
+  el.memoInput.closest('.memo').classList.remove('is-filled');
+  fitMemo();
   setTitle();
   render();
 }
@@ -398,6 +415,41 @@ el.hits.addEventListener('keydown', (event) => {
 el.resetBtn.addEventListener('click', toSetting);
 
 el.soundToggle.addEventListener('click', () => selectSound(!state.soundOn));
+
+// 書き置きは 1 行きり。Enter で書き終える (Esc も同じ扱いで、書いた分は残す)
+el.memoInput.addEventListener('keydown', (event) => {
+  if (event.isComposing) return; // 変換の確定の Enter で書き終えない
+  if (event.key === 'Enter' || event.key === 'Escape') {
+    event.preventDefault(); // textarea なので、止めないと改行が入る
+    el.memoInput.blur();
+  }
+});
+
+// 長いときは折り返すが、改行そのものは持たせない (貼り付けで入ってきた改行は空白に置き換える)
+el.memoInput.addEventListener('input', () => {
+  if (/[\r\n]/.test(el.memoInput.value)) {
+    el.memoInput.value = el.memoInput.value.replace(/\s*[\r\n]+\s*/g, ' ');
+  }
+  fitMemo();
+});
+
+// 書き直し始めると文字が控えめな大きさに戻るので、高さを合わせ直す
+el.memoInput.addEventListener('focus', fitMemo);
+
+// 盤面の大きさが変わると左カラムの幅も変わり、折り返しの行数が変わる
+window.addEventListener('resize', fitMemo);
+
+// 書き終えたところで、書き置きがあるかどうかを確定させる。
+// 位置 (.is-filled) はここでだけ切り替える。書いている途中で切り替えると、
+// 1 文字目を打った瞬間や消しきった瞬間に「◯◯まで」が上下に跳ねる。
+// 書いている間は引っ込めるのを止めているので、ここから数え直す
+el.memoInput.addEventListener('blur', () => {
+  const text = el.memoInput.value.trim();
+  el.memoInput.value = text; // 空白だけのときは書いていない扱いにする
+  el.memoInput.closest('.memo').classList.toggle('is-filled', text !== '');
+  fitMemo();
+  revealControls();
+});
 
 // 触っていれば出る。動かすか押すか、キーを叩くかで戻す。
 // キー入力を含めるのは、キーボードだけで辿っている人に操作を見せるため。

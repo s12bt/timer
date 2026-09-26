@@ -27,6 +27,8 @@
   --mark-strong: #cf5a3e;
   /* 数字だけこの書体。SF Pro Display は日本語のグリフを持たないので、
      案内文は次の候補 (游ゴシック) が拾う。同じ要素の中で数字と日本語が書き分かる */
+  /* 「◯◯まで」の時刻の大きさ。書き置きも同じ大きさで並べる */
+  --lead-size: clamp(32px, 3.6vw, 48px);
   --font-display: "SF Pro Display", "游ゴシック体", YuGothic, "游ゴシック Medium",
     "Yu Gothic Medium", "游ゴシック", "Yu Gothic", メイリオ, "Hiragino sans", sans-serif;
 }
@@ -88,6 +90,7 @@ body {
 }
 
 .kiri.is-idle .controls,
+.kiri.is-idle .memo:has(.memo__input:placeholder-shown),
 body:has(.kiri.is-idle) .corner-controls {
   opacity: 0;
   pointer-events: none;
@@ -147,7 +150,19 @@ body:has(.kiri.is-idle) .corner-controls {
   padding: 32px 20px;
 }
 
-.lead { grid-area: lead; justify-self: end; text-align: right; }
+/* 左カラムいっぱいに広げ、中身は盤面の側 (右) へ寄せる。
+   書き置きの枠の幅をカラムの幅から決めるため、箱そのものは中身の幅に縮めない */
+.head {
+  grid-area: lead;
+  justify-self: stretch;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  text-align: right;
+}
+
 .stage { grid-area: stage; }
 .readout { grid-area: readout; justify-self: start; align-items: flex-start; text-align: left; }
 .controls { grid-area: controls; }
@@ -169,7 +184,7 @@ body:has(.kiri.is-idle) .corner-controls {
 
 .lead__main {
   font-family: var(--font-display);
-  font-size: clamp(32px, 3.6vw, 48px);
+  font-size: var(--lead-size);
   font-variant-numeric: tabular-nums;
 }
 
@@ -180,6 +195,107 @@ body:has(.kiri.is-idle) .corner-controls {
 }
 
 /* 3 カラムのときは、左右の文字のぶん (片側およそ 240px) を先に確保してから盤面の大きさを決める */
+/* ============ 書き置き ============ */
+
+/* 空のときは鉛筆付きの枠で、書けることを示す。枠の形は「時間を選び直す」と揃える。
+   書き終えたら枠を透かして、文字だけが盤面の脇に置かれているように見せる。
+   枠の内側の余白ぶん外へはみ出させて、文字の端を上の「◯◯まで」と揃える。
+   書いている間と空のときは控えめな大きさにして、任意の欄が盤面の脇で主張しすぎないようにする。
+   書き終えたら (.is-filled) 「◯◯まで」の時刻と同じ大きさに上げ、読むための文字として置く。
+   長いときは複数行に折り返し、枠の高さは中身に合わせて伸びる。
+
+   書き置きは任意なので、書き終えるまでは「◯◯まで」の下にぶら下げるだけにして、高さに数えない。
+   こうすると「◯◯まで」だけが盤面の上下中央に来る。
+   書いてフォーカスを外したら (.is-filled) 流れに戻し、2 行をひとまとまりとして中央に置く */
+.memo {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: -15px;
+  display: flex;
+  width: calc(100% + 30px);
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1.4;
+  cursor: text;
+  transition: opacity 0.4s ease, border-color 0.15s ease;
+}
+
+.memo.is-filled {
+  position: relative;
+  top: auto;
+  right: auto;
+  margin-right: -15px;
+}
+
+/* 書き直している間は、また控えめな大きさに戻す */
+.memo.is-filled:not(:focus-within) { font-size: var(--lead-size); }
+
+.memo:focus-within { border-color: var(--text); }
+
+/* タッチ端末では押したあとも hover が残るので、マウスのある環境だけにする */
+@media (hover: hover) {
+  .memo:hover { border-color: var(--text); }
+}
+
+/* 鉛筆は placeholder の頭に付く飾り。入力欄の上に重ねて置き、入力欄の幅には関わらせない。
+   placeholder の 1 行目の高さの中央に置く (出るのは空のとき = 控えめな大きさのときだけ) */
+.memo__icon {
+  position: absolute;
+  left: 14px;
+  top: calc(6px + 0.7em - 9px);
+  width: 18px;
+  height: 18px;
+  opacity: 0.45; /* placeholder の文字と同じ濃さ */
+  pointer-events: none;
+}
+
+/* 高さは JS が中身に合わせて伸ばす (field-sizing: content が使えるブラウザではそちらが先に効く) */
+.memo__input {
+  flex: 1;
+  min-width: 0;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: 0.06em;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  field-sizing: content;
+  /* 折り返しは文節の切れ目で (対応していないブラウザでは通常の折り返しになる) */
+  word-break: auto-phrase;
+}
+
+/* フォーカスは外枠 (.memo:focus-within) が示すので、入力欄そのものには線を出さない。
+   末尾の :focus-visible と同じ強さなので、ここで明示して打ち消す */
+.memo__input:focus-visible { outline: none; }
+
+.memo__input::placeholder {
+  color: var(--text);
+  opacity: 0.45;
+}
+
+/* placeholder が出ている間は、鉛筆のぶんだけ文字を右へ送る。
+   書き始めたら placeholder と一緒に鉛筆も消え、書いた文字は枠の左端から始まる */
+.memo__input:placeholder-shown { padding-left: 26px; }
+.memo:has(.memo__input:not(:placeholder-shown)) .memo__icon { display: none; }
+
+/* 書き終えた状態。枠を透かし、文字は「◯◯まで」と同じ側に寄せる。
+   hover で枠が戻るので、もう一度書き直せることはそこで伝わる */
+.memo:has(.memo__input:not(:placeholder-shown):not(:focus)) { border-color: transparent; }
+@media (hover: hover) {
+  .kiri:not(.is-idle) .memo:has(.memo__input:not(:placeholder-shown):not(:focus)):hover { border-color: var(--line); }
+}
+.memo__input:not(:placeholder-shown):not(:focus) { text-align: right; }
+
+/* 選ぶ場面では出さない。場所は残して、選んだ瞬間に上の文字が動かないようにする */
+.kiri.is-setting .memo { visibility: hidden; }
+
 .stage {
   position: relative;
   width: min(72vmin, 480px, calc(100vw - 480px));
@@ -303,13 +419,14 @@ body:has(.kiri.is-idle) .corner-controls {
 
 /* ============ 文字 ============ */
 
+/* 残り時間の数字だけで盤面の上下中央に来るようにする。
+   添えの語 (のこり / 時間になりました) は数字の上にぶら下げるだけで、高さに数えない。
+   設定中は文字を消すのではなく透明にして、場所だけ残す (選んだ瞬間に盤面が動かない) */
 .readout {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  /* 場面が変わっても盤面が動かないよう、中身の大きさを常に同じにする。
-     設定中は文字を消すのではなく透明にして、場所だけ残す */
-  min-height: 92px;
 }
 
 /* 残り時間。離れた場所からでも読める大きさにする。
@@ -325,7 +442,11 @@ body:has(.kiri.is-idle) .corner-controls {
 }
 
 .readout__note {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
   margin: 0;
+  white-space: nowrap;
   min-height: 1.5em; /* 文言が空の場面でも行を畳ませない */
   font-size: 18px;
   letter-spacing: 0.06em;
@@ -432,16 +553,29 @@ body:has(.kiri.is-idle) .corner-controls {
       "readout"
       "controls";
     justify-content: center;
+    /* 書き置きが複数行になると中身が画面の高さを超え、上端から詰まる。
+       右上の音の切り替え (top 20px + 高さ 46px) に被らないよう、そのぶん上を空ける */
+    padding-top: 84px;
   }
 
-  .lead,
+  .head,
   .readout {
     justify-self: center;
     align-items: center;
     text-align: center;
   }
 
-  .lead__main { font-size: 48px; }
+  /* 1 列のときは盤面が真下にあるので、ぶら下げると重なる。常に流れの中に置く */
+  .memo,
+  .memo.is-filled { position: relative; top: auto; right: auto; margin-right: 0; width: 100%; }
+  .memo__input:not(:placeholder-shown):not(:focus) { text-align: center; }
+
+  /* 添えの語も同じく、盤面が真上にあるので流れの中に置く。
+     場面が変わっても盤面が動かないよう、残り時間の欄の高さは常に同じにする */
+  .readout { min-height: 92px; }
+  .readout__note { position: static; }
+
+  .kiri { --lead-size: 48px; }
 
   .stage { width: min(72vmin, 480px); }
 }
