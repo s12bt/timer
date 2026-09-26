@@ -392,7 +392,9 @@ kbd { font-family: inherit; }
    円の下に置く一時停止中の Reset は画面の外へ出て押せなくなる。
    円と操作を左右に並べ、2 つをまとめて画面の中央に置く。
    円を中央に据えたまま右の空きに操作を入れると、幅の狭い横画面 (667px など) では空きが足りない。
-   一時停止中の一行は、操作と同じ右の列に重ねて置く (操作は計測中と一時停止中は引いているので、同時には出ない) */
+   一時停止中の一行は、操作と同じ右の列に重ねて置く。
+   2 つは入れ替わりで出るが、フェードが重なると同じ場所で半透明の文字とボタンが混ざるので、
+   現れる側を消える側のフェードが終わるまで待たせる (下の transition-delay) */
 @media (orientation: landscape) and (max-height: 500px) {
   :root { --lift: 0px; } /* 下に操作を置かないので、円を持ち上げる必要がない */
 
@@ -423,4 +425,12 @@ kbd { font-family: inherit; }
   }
 
   .check { font-size: 13px; }
+
+  /* 選び直し・終了後に操作が戻るときは、一時停止中の一行が消えきる (0.8s) のを待つ */
+  .zen.is-setting .controls,
+  .zen.is-finished .controls { transition-delay: 0.8s; }
+
+  /* 計測を始めたときの案内は、操作が引ききる (0.9s) のを待つ。
+     一時停止の合図は操作が既に引いたあとに出るので待たせない (押した反応をすぐ返す) */
+  .zen.is-running.has-whisper .whisper { transition-delay: 0.9s; }
 }
