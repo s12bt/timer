@@ -321,8 +321,9 @@ body:has(.kiri.is-idle) .corner-controls {
   overflow: visible;
 }
 
-/* 当たり判定は最前面。見た目の層 (.dial) には一切触らせない */
-.hits { z-index: 2; }
+/* 当たり判定は最前面。見た目の層 (.dial) には一切触らせない。
+   タッチでは文字盤の上を指でなぞって行き先を選ぶので、ここではページをスクロールさせない */
+.hits { z-index: 2; touch-action: none; }
 
 .dial__face { fill: #ffffff; }
 
@@ -404,9 +405,10 @@ body:has(.kiri.is-idle) .corner-controls {
   outline: none;
 }
 
-/* 押す前に結果を見せる。hover した扇をごく薄く塗り、同時に選ばれる時刻を盤面の上に出す
-   (プレビューの文字は JS が .lead に差し替える) */
-.hit:hover { fill: rgba(58, 58, 60, 0.05); }
+/* 押す前に結果を見せる。指している扇 (マウスなら hover、タッチなら指の下) をごく薄く塗り、
+   同時に選ばれる時刻を盤面の上に出す (プレビューの文字は JS が .lead に差し替える)。
+   :hover ではなく JS が付ける印で塗る。タッチでは :hover が指を離したあとも残るため */
+.hit.is-aimed { fill: rgba(58, 58, 60, 0.05); }
 
 /* 扇 1 枚は 30 度ある。面を塗るだけではどの目盛に付くのかが読めないので、中心線で指す。
    盤面で唯一の色。針や目盛と同じインクだと 3 本目の針に見えるので、別の色で差す */

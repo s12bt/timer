@@ -324,6 +324,7 @@ function choose(step) {
   // 大きな数字は残り時間なので、その意味を一語だけ上に添える
   el.noteLabel.textContent = 'のこり';
   el.hits.classList.remove('is-aiming'); // 数え始めたら狙いの線は用済み
+  for (const hit of el.hits.querySelectorAll('.hit.is-aimed')) hit.classList.remove('is-aimed');
   aimingStep = null;
   setPhase('running');
   revealControls();
@@ -379,6 +380,8 @@ function tick() {
 buildDial();
 
 el.hits.addEventListener('click', (event) => {
+  // タッチで選んだ直後に遅れて届く click は、指を離した時点で処理済みなので捨てる
+  if (performance.now() < suppressClickUntil) return;
   const hit = event.target.closest('.hit');
   if (hit) choose(Number(hit.dataset.step));
 });
@@ -389,6 +392,8 @@ function preview(hit) {
   if (phase() !== 'setting') return;
   const step = Number(hit.dataset.step);
   aimingStep = step;
+  for (const other of el.hits.querySelectorAll('.hit.is-aimed')) other.classList.remove('is-aimed');
+  hit.classList.add('is-aimed');
   setLead(hhmm(new Date(targetForStep(step))), 'まで');
   line(el.aimLine, step * 30, 0, 96);
   el.hits.classList.add('is-aiming');
@@ -397,9 +402,68 @@ function preview(hit) {
 function clearPreview() {
   if (phase() !== 'setting') return;
   aimingStep = null;
+  for (const hit of el.hits.querySelectorAll('.hit.is-aimed')) hit.classList.remove('is-aimed');
   setLead(ASK);
   el.hits.classList.remove('is-aiming');
 }
+
+// ---- タッチ: なぞって選び、離して決める ----
+// タッチには hover が無いので、触れた瞬間に決めると行き先を確かめる間が無い。
+// 指を置いたら行き先を出し、滑らせたら付いてくる。離したところで決まる。
+// 盤面の外まで指を外してから離せば、何も選ばずに取り消せる。
+// マウスは従来どおり hover で見せてクリックで決める (ここでは扱わない)
+
+// 指の位置から目盛を割り出す。指を捕まえている間は event.target が盤面全体になるので、座標で決める。
+// 盤面の縁から少し外 (HIT_OUT_R) までは盤面の内として扱い、縁ぎりぎりで離しても取り消しにしない
+const HIT_OUT_R = 112; // viewBox の単位。盤面の半径は 97
+function stepAtPoint(clientX, clientY) {
+  const r = el.hits.getBoundingClientRect();
+  const x = ((clientX - r.left) / r.width) * 200 - 100;
+  const y = ((clientY - r.top) / r.height) * 200 - 100;
+  if (Math.hypot(x, y) > HIT_OUT_R) return null;
+  const deg = (Math.atan2(x, -y) * 180) / Math.PI; // 12 時が 0 度、時計回り
+  return ((Math.round(deg / 30) % STEPS) + STEPS) % STEPS;
+}
+
+function aimAtPoint(event) {
+  const step = stepAtPoint(event.clientX, event.clientY);
+  if (step === null) {
+    clearPreview();
+    return;
+  }
+  if (step !== aimingStep) preview(el.hits.querySelector(`.hit[data-step="${step}"]`));
+}
+
+let touchPointer = null; // なぞっている指。2 本目の指は無視する
+let suppressClickUntil = 0;
+
+el.hits.addEventListener('pointerdown', (event) => {
+  if (event.pointerType === 'mouse' || phase() !== 'setting' || touchPointer !== null) return;
+  // 触れただけで目盛にフォーカスが移ると、取り消したあとも行き先が残るので、既定の動きは止める
+  event.preventDefault();
+  touchPointer = event.pointerId;
+  el.hits.setPointerCapture(event.pointerId);
+  aimAtPoint(event);
+});
+
+el.hits.addEventListener('pointermove', (event) => {
+  if (event.pointerId === touchPointer) aimAtPoint(event);
+});
+
+el.hits.addEventListener('pointerup', (event) => {
+  if (event.pointerId !== touchPointer) return;
+  touchPointer = null;
+  suppressClickUntil = performance.now() + 500;
+  const step = stepAtPoint(event.clientX, event.clientY);
+  if (step === null) clearPreview();
+  else choose(step);
+});
+
+el.hits.addEventListener('pointercancel', (event) => {
+  if (event.pointerId !== touchPointer) return;
+  touchPointer = null;
+  clearPreview();
+});
 
 el.hits.addEventListener('mouseover', (event) => {
   const hit = event.target.closest('.hit');
