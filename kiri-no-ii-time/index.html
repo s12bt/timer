@@ -29,7 +29,21 @@
   <main class="kiri is-setting" id="kiri">
     <!-- 選ぶ対象は時刻なので、盤面の上に置く。目盛を hover したときの行き先もここに出るので、
          視線が盤面から下まで往復せずに済む -->
-    <p class="lead"><span class="lead__main" id="leadMain">何分までやる？</span><span class="lead__suffix" id="leadSuffix"></span></p>
+    <div class="head">
+      <p class="lead"><span class="lead__main" id="leadMain">何分まで<wbr>やる？</span><span class="lead__suffix" id="leadSuffix"></span></p>
+
+      <!-- いま何をやっている時間なのかの書き置き (任意)。枠は書いている間と空のときだけ出し、
+           書き終えたら枠を外して文字だけを置く。入力欄は 1 つで、見え方だけを CSS で切り替える -->
+      <label class="memo">
+        <svg class="memo__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M15.5 4.5l4 4L8.5 19.5H4.5v-4z" />
+          <path d="M13 7l4 4" />
+        </svg>
+        <!-- 長く書いたときに折り返せるよう textarea にする。改行は入れさせず、Enter は書き終える操作 -->
+        <textarea class="memo__input" id="memoInput" rows="1" placeholder="なにをする時間か書ける場所"
+          maxlength="40" autocomplete="off" enterkeyhint="done" aria-label="なにをする時間か書ける場所"></textarea>
+      </label>
+    </div>
 
     <div class="stage">
       <svg class="dial" viewBox="0 0 200 200" aria-hidden="true">
@@ -69,10 +83,26 @@
 
     <!-- 盤面の外に出す。中央は針が通るので、文字を置くと時計として読めなくなる -->
     <div class="readout">
+      <!-- 添えの語は数字の上。「のこり」と読んでから数字を読む順にする -->
+      <p class="readout__note" id="noteLabel"></p>
       <p class="readout__remain" id="remain" role="timer" aria-live="off">
         <span class="seg" id="remainValue">0:00</span>
       </p>
-      <p class="readout__note" id="noteLabel"></p>
+      <!-- 残り時間を隠す / 出す。「のこり」と数字の範囲そのものを押せる場所にする (ちょっとした隠し機能なので、普段は見せない)。
+           触れると右上に押したときに起きることのアイコンが出る。
+           隠している間は、何も無くなると不安なので範囲をごく薄く塗り、右上に「隠している」印を残す。
+           隠している間に触れると、その間だけ残り時間を薄く覗かせる -->
+      <button class="remain-toggle" id="remainToggle" type="button" aria-pressed="false" aria-label="残り時間を隠す">
+        <svg class="remain-toggle__hide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z" />
+          <circle cx="12" cy="12" r="2.6" />
+          <path d="M4 4l16 16" />
+        </svg>
+        <svg class="remain-toggle__show" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z" />
+          <circle cx="12" cy="12" r="2.6" />
+        </svg>
+      </button>
     </div>
 
     <div class="controls">
