@@ -159,7 +159,8 @@ body:has(.kiri.is-idle) .corner-controls {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 12px;
+  /* 「◯◯まで」と書き置きの間。「◯◯まで」は行の高さ (1.4) のぶん下に余白を持っているので、詰めて置く */
+  gap: 4px;
   text-align: right;
 }
 
@@ -209,7 +210,7 @@ body:has(.kiri.is-idle) .corner-controls {
    書いてフォーカスを外したら (.is-filled) 流れに戻し、2 行をひとまとまりとして中央に置く */
 .memo {
   position: absolute;
-  top: calc(100% + 12px);
+  top: calc(100% + 4px); /* .head の gap と揃える */
   right: -15px;
   display: flex;
   width: calc(100% + 30px);
@@ -230,8 +231,13 @@ body:has(.kiri.is-idle) .corner-controls {
   margin-right: -15px;
 }
 
-/* 書き直している間は、また控えめな大きさに戻す */
-.memo.is-filled:not(:focus-within) { font-size: var(--lead-size); }
+/* 書き直している間は、また控えめな大きさに戻す。
+   書き終えて枠が見えない間は、枠の内側の上下の余白も要らないので畳み、「◯◯まで」との間を詰める */
+.memo.is-filled:not(:focus-within) {
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: var(--lead-size);
+}
 
 .memo:focus-within { border-color: var(--text); }
 
