@@ -29,6 +29,7 @@ const el = {
   leadMain: document.getElementById('leadMain'),
   leadSuffix: document.getElementById('leadSuffix'),
   remainValue: document.getElementById('remainValue'),
+  remainToggle: document.getElementById('remainToggle'),
   noteLabel: document.getElementById('noteLabel'),
   resetBtn: document.getElementById('resetBtn'),
   soundToggle: document.getElementById('soundToggle'),
@@ -39,6 +40,7 @@ const state = {
   targetAt: 0, // 終わりの時刻 (epoch ms)。長さではなく時刻を持つのがこのタイマーの性格
   finished: false,
   soundOn: true,
+  remainHidden: false, // 残り時間を隠しているか。数えている間だけの設定で、区切りごとに表示へ戻す
 };
 
 let tickId = null;
@@ -197,6 +199,13 @@ function fitMemo() {
   el.memoInput.style.height = el.memoInput.scrollHeight + 'px';
 }
 
+function setRemainHidden(hidden) {
+  state.remainHidden = hidden;
+  el.kiri.classList.toggle('is-remain-hidden', hidden);
+  el.remainToggle.setAttribute('aria-pressed', String(hidden));
+  el.remainToggle.setAttribute('aria-label', hidden ? '残り時間を表示' : '残り時間を隠す');
+}
+
 function setPhase(name) {
   el.kiri.classList.remove('is-setting', 'is-running', 'is-finished');
   el.kiri.classList.add('is-' + name);
@@ -233,7 +242,8 @@ function render() {
 
   const text = mmss(remaining);
   el.remainValue.textContent = text;
-  setTitle(text);
+  // 隠している間はタブの題名にも出さない (そこから残りが見えてしまう)
+  setTitle(state.remainHidden ? '' : text);
 }
 
 // ---- 音 ----
@@ -324,6 +334,8 @@ function choose(step) {
 
 function finish() {
   state.finished = true;
+  // 隠していても、時間になったことは数字で伝える
+  setRemainHidden(false);
   setPhase('finished');
   revealControls();
   // 「◯◯まで」は据え置き。残り時間は 0:00 で止めて、添えの語だけを終わりの合図に差し替える
@@ -347,6 +359,7 @@ function toSetting() {
   el.memoInput.value = '';
   el.memoInput.closest('.memo').classList.remove('is-filled');
   fitMemo();
+  setRemainHidden(false);
   setTitle();
   render();
 }
@@ -415,6 +428,11 @@ el.hits.addEventListener('keydown', (event) => {
 el.resetBtn.addEventListener('click', toSetting);
 
 el.soundToggle.addEventListener('click', () => selectSound(!state.soundOn));
+
+el.remainToggle.addEventListener('click', () => {
+  setRemainHidden(!state.remainHidden);
+  render(); // タブの題名をすぐに合わせる
+});
 
 // 書き置きは 1 行きり。Enter で書き終える (Esc も同じ扱いで、書いた分は残す)
 el.memoInput.addEventListener('keydown', (event) => {

@@ -441,6 +441,7 @@ body:has(.kiri.is-idle) .corner-controls {
   line-height: 1;
 }
 
+/* 添えの語は数字の上にぶら下げるだけで、高さに数えない */
 .readout__note {
   position: absolute;
   bottom: calc(100% + 6px);
@@ -479,6 +480,76 @@ body:has(.kiri.is-idle) .corner-controls {
   transform-origin: center;
   animation: rim-buzz 2s linear infinite;
 }
+
+/* ============ 残り時間を隠す ============ */
+
+/* 「のこり」と数字の範囲を覆う、押せる面。数えている間だけ置く。
+   上端は添えの語の上 (添えの語 1 行 27px + 間 6px + 余白 6px)、左右と下は数字から少しはみ出させる */
+.remain-toggle {
+  position: absolute;
+  top: -39px;
+  right: -10px;
+  bottom: -6px;
+  left: -10px;
+  display: none;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.kiri.is-running .remain-toggle { display: block; }
+
+/* アイコンは数字に重ねず、範囲の右上 (「のこり」の行の端) に小さく置く。
+   アイコンは押したときに起きること (表示中は「隠す」、隠している間は「出す」) を示す */
+.remain-toggle svg {
+  position: absolute;
+  top: 7px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.remain-toggle__show { display: none; }
+
+/* 触れている間はアイコンを出す。表示中は塗らず、アイコンだけで押せることを示す。
+   操作が引いている間は反応させない */
+.kiri.is-running:not(.is-idle) .remain-toggle:hover svg,
+.kiri.is-running .remain-toggle:focus-visible svg { opacity: 0.4; }
+
+/* 隠している間は数字と「のこり」を消し、範囲をごく薄く塗って「隠している」印を右上に残す。
+   何も見えなくなると止まったのかと不安になるので、わざと隠していることは示す。
+   触れたときは一段濃く塗って (0.05 → 0.08)、反応したことを返す */
+.kiri.is-remain-hidden .readout__remain,
+.kiri.is-remain-hidden .readout__note { visibility: hidden; }
+
+.kiri.is-remain-hidden .remain-toggle { background: rgba(58, 58, 60, 0.05); }
+
+.kiri.is-remain-hidden:not(.is-idle) .remain-toggle:hover,
+.kiri.is-remain-hidden .remain-toggle:focus-visible { background: rgba(58, 58, 60, 0.08); }
+.kiri.is-remain-hidden .remain-toggle__hide { opacity: 0.4; }
+
+/* 隠している間に触れたら、その間だけ残り時間を覗かせ、アイコンを「出す」側に替える */
+.kiri.is-remain-hidden:not(.is-idle) .readout:has(.remain-toggle:hover) .readout__remain,
+.kiri.is-remain-hidden:not(.is-idle) .readout:has(.remain-toggle:hover) .readout__note,
+.kiri.is-remain-hidden .readout:has(.remain-toggle:focus-visible) .readout__remain,
+.kiri.is-remain-hidden .readout:has(.remain-toggle:focus-visible) .readout__note {
+  visibility: visible;
+  opacity: 0.45; /* 覗いているだけなので、表示しているときより薄く出す */
+}
+
+.kiri.is-remain-hidden:not(.is-idle) .remain-toggle:hover .remain-toggle__hide,
+.kiri.is-remain-hidden .remain-toggle:focus-visible .remain-toggle__hide { display: none; }
+.kiri.is-remain-hidden:not(.is-idle) .remain-toggle:hover .remain-toggle__show,
+.kiri.is-remain-hidden .remain-toggle:focus-visible .remain-toggle__show { display: block; }
+
+/* ちょっとした隠し機能なので、タッチ端末でも普段は出さない。
+   タッチ端末では触れた要素に hover が付くので、押したあとは同じ見え方になる */
 
 /* 動きを減らす設定では明滅させず、色だけで示す */
 @media (prefers-reduced-motion: reduce) {
@@ -574,6 +645,8 @@ body:has(.kiri.is-idle) .corner-controls {
      場面が変わっても盤面が動かないよう、残り時間の欄の高さは常に同じにする */
   .readout { min-height: 92px; }
   .readout__note { position: static; }
+  /* 添えの語が流れの中にあるので、押せる範囲は欄の上端から取る */
+  .remain-toggle { top: -6px; }
 
   .kiri { --lead-size: 48px; }
 
