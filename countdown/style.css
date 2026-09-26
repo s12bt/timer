@@ -241,29 +241,44 @@ body:has(.run-screen[hidden]) .sound-toggle { display: none; }
   gap: 8px;
 }
 
+/* 指で押す前提の大きさにする。高さ 44px は指先で確実に押せる最小の目安 */
 .chip {
-  padding: 6px 14px;
+  min-height: 44px;
+  padding: 0 18px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--surface);
   color: var(--text-dim);
-  font-size: 13px;
+  font-size: 15px;
   font-family: inherit;
   cursor: pointer;
   transition: color 0.15s ease, border-color 0.15s ease;
 }
 
 .reset-btn {
+  min-height: 44px;
   margin-left: 10px;
-  padding: 6px 16px;
+  padding: 0 18px;
   border: 0;
   border-radius: 999px;
   background: transparent;
   color: var(--text-dim);
   font-family: inherit;
-  font-size: 13px;
+  font-size: 15px;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
+}
+
+/* 幅の狭い画面では 3 列 × 2 行の格子に並べる。
+   折り返しに任せると 2 行目に端数 (+30m と Reset だけ) が落ち、押す場所の並びが読みにくい */
+@media (max-width: 480px) {
+  .presets {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    width: min(100%, 340px);
+  }
+
+  .reset-btn { margin-left: 0; }
 }
 
 .reset-btn:hover {

@@ -22,8 +22,12 @@
   --line: rgba(63, 58, 51, 0.16);
   --ring: rgba(63, 58, 51, 0.58); /* 残り時間の弧。細い線なので --line より濃い */
   /* 下部の操作の重みで視覚的な中心が下がって見えるぶん、円と数字を持ち上げる。
-     円の下に置く一行も同じ量だけ動かすこと (画面中心を基準に位置を計算しているため) */
-  --lift: 30px;
+     円の下に置く一行も同じ量だけ動かすこと (画面中心を基準に位置を計算しているため)。
+     量は画面の高さに合わせる。円は高さに合わせて縮むので、固定値だと低い画面ほど上に寄りすぎる
+     (高さ 800px 以上で 40px、600px 以下で 30px) */
+  --lift: clamp(30px, 5vh, 40px);
+  /* 円と数字を収める正方形の一辺。数字の大きさ・円の下の一行の位置もここから決める */
+  --stage: min(66vmin, 460px);
   --line-faint: rgba(63, 58, 51, 0.05);
   --font-display: Manrope, "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", system-ui, sans-serif;
@@ -80,7 +84,7 @@ body::after {
 .stage {
   position: relative;
   top: calc(-1 * var(--lift));
-  width: min(66vmin, 460px);
+  width: var(--stage);
   aspect-ratio: 1;
   display: grid;
   place-items: center;
@@ -182,14 +186,16 @@ body::after {
   display: flex;
   align-items: center;
   font-family: var(--font-display);
-  font-size: clamp(42px, 6.4vw, 62px);
+  /* 円に対する釣り合いをどの画面でも同じにするため、画面幅ではなく円の大きさに比例させる。
+     画面幅で決めると、横に長い画面 (スマホの横向き) ほど円に対して数字が大きくなる */
+  font-size: calc(var(--stage) * 0.17);
   font-weight: 500; /* Manrope の中庸。countdown の 700 より軽く、静けさを保ったまま芯を持たせる */
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
   line-height: 1;
   user-select: none;
   /* 読みやすさはインクが担い、光と影は面につなぐ役だけを持つ。光源は円の溝と同じ左上。
-     ずらし幅とぼかしは字の大きさに見合わせた値で、ここを縮めると 62px の字に対して比率として消える。
+     ずらし幅とぼかしは字の大きさに見合わせた値で、ここを縮めると PC の字 (約 78px) に対して比率として消える。
      陰影の強弱は色の濃さ側で調整すること */
   color: rgba(63, 58, 51, 0.52);
   text-shadow:
@@ -220,8 +226,8 @@ body::after {
   position: absolute;
   left: 0;
   right: 0;
-  /* stage の半径 min(33vmin, 230px) のぶん中心から下げる */
-  top: calc(50% + min(33vmin, 230px) + 30px - var(--lift));
+  /* stage の半径のぶん中心から下げる */
+  top: calc(50% + var(--stage) / 2 + 30px - var(--lift));
   margin: 0;
   display: flex;
   flex-direction: column;
@@ -241,13 +247,14 @@ body::after {
 /* 設定画面の Reset (.chip.chip--quiet) と同じ作り。枠線は hover のときだけ現れる */
 .whisper__reset {
   display: none;
-  padding: 6px 14px;
+  min-height: 44px;
+  padding: 0 18px;
   border: 1px solid transparent;
   border-radius: 999px;
   background: transparent;
   color: inherit;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 15px;
   letter-spacing: 0.04em;
   cursor: pointer;
   pointer-events: auto; /* 行自体は透過させ、この一語だけ押せるようにする */
@@ -291,17 +298,29 @@ body::after {
   gap: 8px;
 }
 
+/* 指で押す前提の大きさにする。高さ 44px は指先で確実に押せる最小の目安 (countdown と同じ) */
 .chip {
-  padding: 6px 14px;
+  min-height: 44px;
+  padding: 0 18px;
   border: 1px solid var(--line-faint);
   border-radius: 999px;
   background: transparent;
   color: var(--text-dim);
   font-family: inherit;
-  font-size: 14px;
+  font-size: 15px;
   letter-spacing: 0.04em;
   cursor: pointer;
   transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+/* 幅の狭い画面では 3 列 × 2 行の格子に並べる。
+   折り返しに任せると 2 行目に端数が落ち、押す場所の並びが読みにくい (countdown と同じ) */
+@media (max-width: 480px) {
+  .presets {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    width: min(100% - 40px, 340px);
+  }
 }
 
 .chip:hover {
@@ -365,4 +384,53 @@ kbd { font-family: inherit; }
 /* キーボード前提の案内はタッチ端末では出さない (ヒント欄はエラー文言にも使うので kbd を含むときだけ) */
 @media (hover: none) and (pointer: coarse) {
   .hint:has(kbd) { display: none; }
+}
+
+/* ============ 高さの低い横長画面 (スマホの横向き) ============ */
+
+/* 操作を画面の下に置く作りのままだと、背の低い画面では時間を足すボタンが中央の数字に被り、
+   円の下に置く一時停止中の Reset は画面の外へ出て押せなくなる。
+   円と操作を左右に並べ、2 つをまとめて画面の中央に置く。
+   円を中央に据えたまま右の空きに操作を入れると、幅の狭い横画面 (667px など) では空きが足りない。
+   一時停止中の一行は、操作と同じ右の列に重ねて置く。
+   2 つは入れ替わりで出るが、フェードが重なると同じ場所で半透明の文字とボタンが混ざるので、
+   現れる側を消える側のフェードが終わるまで待たせる (下の transition-delay) */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root { --lift: 0px; } /* 下に操作を置かないので、円を持ち上げる必要がない */
+
+  .zen {
+    grid-template-columns: auto minmax(0, 340px);
+    grid-template-areas: "stage side";
+    place-items: center;
+    place-content: center;
+    column-gap: 32px;
+    padding: 0 24px;
+  }
+
+  .stage { grid-area: stage; }
+
+  .controls,
+  .whisper {
+    grid-area: side;
+    position: static;
+    width: 100%;
+  }
+
+  .controls { gap: 14px; }
+
+  .presets {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    width: 100%;
+  }
+
+  .check { font-size: 13px; }
+
+  /* 選び直し・終了後に操作が戻るときは、一時停止中の一行が消えきる (0.8s) のを待つ */
+  .zen.is-setting .controls,
+  .zen.is-finished .controls { transition-delay: 0.8s; }
+
+  /* 計測を始めたときの案内は、操作が引ききる (0.9s) のを待つ。
+     一時停止の合図は操作が既に引いたあとに出るので待たせない (押した反応をすぐ返す) */
+  .zen.is-running.has-whisper .whisper { transition-delay: 0.9s; }
 }
