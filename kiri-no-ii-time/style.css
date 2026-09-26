@@ -127,17 +127,30 @@ body:has(.kiri.is-idle) .corner-controls {
 .sound-toggle[aria-pressed="false"] .sound-toggle__on { display: none; }
 .sound-toggle[aria-pressed="false"] .sound-toggle__off { display: block; }
 
+/* 盤面を中央に置き、左に終わりの時刻、右に残り時間を振り分ける 3 カラム。
+   選ぶ場面でも同じ枠組みのまま右カラムだけを空け、選んだ瞬間に要素が動かないようにする。
+   左右のカラムは同じ幅 (1fr) にして、盤面を画面の真ん中に据える。
+   文字は盤面の側へ寄せ、盤面との距離を左右で揃える */
 .kiri {
   position: relative;
   min-height: 100vh;
   min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas:
+    "lead stage readout"
+    ".    controls .";
+  align-content: center;
   align-items: center;
-  justify-content: center;
-  gap: 28px;
+  column-gap: 48px;
+  row-gap: 28px;
   padding: 32px 20px;
 }
+
+.lead { grid-area: lead; justify-self: end; text-align: right; }
+.stage { grid-area: stage; }
+.readout { grid-area: readout; justify-self: start; align-items: flex-start; text-align: left; }
+.controls { grid-area: controls; }
 
 /* ============ 盤面 ============ */
 
@@ -150,12 +163,13 @@ body:has(.kiri.is-idle) .corner-controls {
   line-height: 1.4;
   letter-spacing: 0.08em;
   color: var(--text);
-  text-align: center;
+  /* 案内文を語の途中で折り返さない。折り返せる位置は文言の側で指定する */
+  word-break: keep-all;
 }
 
 .lead__main {
   font-family: var(--font-display);
-  font-size: 48px;
+  font-size: clamp(32px, 3.6vw, 48px);
   font-variant-numeric: tabular-nums;
 }
 
@@ -165,9 +179,10 @@ body:has(.kiri.is-idle) .corner-controls {
   font-size: 24px;
 }
 
+/* 3 カラムのときは、左右の文字のぶん (片側およそ 240px) を先に確保してから盤面の大きさを決める */
 .stage {
   position: relative;
-  width: min(72vmin, 480px);
+  width: min(72vmin, 480px, calc(100vw - 480px));
   aspect-ratio: 1;
   flex: none;
 }
@@ -291,12 +306,10 @@ body:has(.kiri.is-idle) .corner-controls {
 .readout {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 6px;
-  /* 場面が変わっても盤面が上下に動かないよう、中身の高さを常に同じにする。
+  /* 場面が変わっても盤面が動かないよう、中身の大きさを常に同じにする。
      設定中は文字を消すのではなく透明にして、場所だけ残す */
   min-height: 92px;
-  text-align: center;
 }
 
 /* 残り時間。離れた場所からでも読める大きさにする。
@@ -401,17 +414,34 @@ body:has(.kiri.is-idle) .corner-controls {
   outline-offset: 3px;
 }
 
-/* 横画面。盤面と文字を左右に分けて、盤面の大きさを保つ */
+/* 背の低い横画面。出口を盤面の下に置くと盤面が縮むので、右下の隅へ逃がす */
 @media (orientation: landscape) and (max-height: 560px) {
-  .kiri {
-    flex-direction: row;
-    justify-content: center;
-    gap: 44px;
-  }
-
-  .stage { width: min(72vmin, 360px); }
-
-  .readout { min-height: 0; }
+  .kiri { grid-template-areas: "lead stage readout"; }
 
   .controls { position: absolute; right: 24px; bottom: 20px; gap: 10px; }
+}
+
+/* 幅の狭い縦長の画面 (スマホの縦持ち) だけ、上から 終わりの時刻 / 盤面 / 残り時間 と縦に積む。
+   横に 3 つ並べると盤面が小さくなりすぎる */
+@media (orientation: portrait) and (max-width: 720px) {
+  .kiri {
+    grid-template-columns: auto;
+    grid-template-areas:
+      "lead"
+      "stage"
+      "readout"
+      "controls";
+    justify-content: center;
+  }
+
+  .lead,
+  .readout {
+    justify-self: center;
+    align-items: center;
+    text-align: center;
+  }
+
+  .lead__main { font-size: 48px; }
+
+  .stage { width: min(72vmin, 480px); }
 }

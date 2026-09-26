@@ -11,6 +11,10 @@ const IDLE_MS = 2500; // 操作が途切れてから操作を隠すまで (count
 // 扇の半径。縁の内側ぎりぎりまで。終わりの時刻は扇の終端がそのまま示すので、別の印は置かない。
 // 目盛も数字も扇より後に描かれるので、扇の上に乗って読める
 const WEDGE_R = 96.4;
+// 選ぶ前の案内。左カラムに収まらないときは「何分まで / やる？」で折り返す。
+// 折り返せる位置はこの 1 か所だけ (.lead の word-break: keep-all と組)。
+// textContent で入れるので <wbr> ではなくゼロ幅スペースで示す
+const ASK = '何分まで​やる？';
 
 const el = {
   kiri: document.getElementById('kiri'),
@@ -324,7 +328,7 @@ function toSetting() {
   state.targetAt = 0;
   state.finished = false;
   el.wedge.setAttribute('d', '');
-  setLead('何分までやる？');
+  setLead(ASK);
   el.noteLabel.textContent = '';
   setTitle();
   render();
@@ -362,7 +366,7 @@ function preview(hit) {
 function clearPreview() {
   if (phase() !== 'setting') return;
   aimingStep = null;
-  setLead('何分までやる？');
+  setLead(ASK);
   el.hits.classList.remove('is-aiming');
 }
 
