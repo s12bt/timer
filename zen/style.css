@@ -379,3 +379,42 @@ kbd { font-family: inherit; }
 @media (hover: none) and (pointer: coarse) {
   .hint:has(kbd) { display: none; }
 }
+
+/* ============ 高さの低い横長画面 (スマホの横向き) ============ */
+
+/* 操作を画面の下に置く作りのままだと、背の低い画面では時間を足すボタンが中央の数字に被り、
+   円の下に置く一時停止中の Reset は画面の外へ出て押せなくなる。
+   円と操作を左右に並べ、2 つをまとめて画面の中央に置く。
+   円を中央に据えたまま右の空きに操作を入れると、幅の狭い横画面 (667px など) では空きが足りない。
+   一時停止中の一行は、操作と同じ右の列に重ねて置く (操作は計測中と一時停止中は引いているので、同時には出ない) */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root { --lift: 0px; } /* 下に操作を置かないので、円を持ち上げる必要がない */
+
+  .zen {
+    grid-template-columns: auto minmax(0, 340px);
+    grid-template-areas: "stage side";
+    place-items: center;
+    place-content: center;
+    column-gap: 32px;
+    padding: 0 24px;
+  }
+
+  .stage { grid-area: stage; }
+
+  .controls,
+  .whisper {
+    grid-area: side;
+    position: static;
+    width: 100%;
+  }
+
+  .controls { gap: 14px; }
+
+  .presets {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    width: 100%;
+  }
+
+  .check { font-size: 13px; }
+}
