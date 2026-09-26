@@ -26,6 +26,8 @@
      量は画面の高さに合わせる。円は高さに合わせて縮むので、固定値だと低い画面ほど上に寄りすぎる
      (高さ 800px 以上で 40px、600px 以下で 30px) */
   --lift: clamp(30px, 5vh, 40px);
+  /* 円と数字を収める正方形の一辺。数字の大きさ・円の下の一行の位置もここから決める */
+  --stage: min(66vmin, 460px);
   --line-faint: rgba(63, 58, 51, 0.05);
   --font-display: Manrope, "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", system-ui, sans-serif;
@@ -82,7 +84,7 @@ body::after {
 .stage {
   position: relative;
   top: calc(-1 * var(--lift));
-  width: min(66vmin, 460px);
+  width: var(--stage);
   aspect-ratio: 1;
   display: grid;
   place-items: center;
@@ -184,14 +186,16 @@ body::after {
   display: flex;
   align-items: center;
   font-family: var(--font-display);
-  font-size: clamp(42px, 6.4vw, 62px);
+  /* 円に対する釣り合いをどの画面でも同じにするため、画面幅ではなく円の大きさに比例させる。
+     画面幅で決めると、横に長い画面 (スマホの横向き) ほど円に対して数字が大きくなる */
+  font-size: calc(var(--stage) * 0.17);
   font-weight: 500; /* Manrope の中庸。countdown の 700 より軽く、静けさを保ったまま芯を持たせる */
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
   line-height: 1;
   user-select: none;
   /* 読みやすさはインクが担い、光と影は面につなぐ役だけを持つ。光源は円の溝と同じ左上。
-     ずらし幅とぼかしは字の大きさに見合わせた値で、ここを縮めると 62px の字に対して比率として消える。
+     ずらし幅とぼかしは字の大きさに見合わせた値で、ここを縮めると PC の字 (約 78px) に対して比率として消える。
      陰影の強弱は色の濃さ側で調整すること */
   color: rgba(63, 58, 51, 0.52);
   text-shadow:
@@ -222,8 +226,8 @@ body::after {
   position: absolute;
   left: 0;
   right: 0;
-  /* stage の半径 min(33vmin, 230px) のぶん中心から下げる */
-  top: calc(50% + min(33vmin, 230px) + 30px - var(--lift));
+  /* stage の半径のぶん中心から下げる */
+  top: calc(50% + var(--stage) / 2 + 30px - var(--lift));
   margin: 0;
   display: flex;
   flex-direction: column;
